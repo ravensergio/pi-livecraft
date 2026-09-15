@@ -1,5 +1,13 @@
-.ask-user-question, .composer {
+.composer {
   width: min(900px, calc(100% - 48px));
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.ask-user-question {
+  /* Matches the conversation column instead of upstream's 900px. */
+  width: min(762px, calc(100% - 48px));
   border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -324,7 +332,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: min(900px, calc(100% - 48px));
+  /* Tracks the dialog's width (see .ask-user-question above). */
+  width: min(762px, calc(100% - 48px));
   margin: 0 auto 13px;
   border: 1px solid var(--line);
   border-radius: 10px;
