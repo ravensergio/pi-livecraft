@@ -27,7 +27,7 @@ import { toolCallsInMessage, toolResultInMessage, type ToolExecution } from './t
 import type { SessionAnalysisTarget } from '../session-analysis/session-analysis.ts'
 import { ActivityIndicator } from './ActivityIndicator.tsx'
 import { Markdown } from './Markdown.tsx'
-import { MessageCard, TurnUsage } from './MessageCard.tsx'
+import { MessageCard, type ReasoningMode, TurnUsage } from './MessageCard.tsx'
 import { isVisibleConversationMessage } from './message-display.ts'
 import { ToolCallCard } from './ToolCallCard.tsx'
 import {
@@ -41,6 +41,7 @@ export function Conversation(
   {
     activity,
     agentName,
+    reasoningMode = 'auto',
     messages,
     liveMessages,
     conversationView,
@@ -57,6 +58,7 @@ export function Conversation(
   }: {
     activity: Activity | null
     agentName?: string
+    reasoningMode?: ReasoningMode
     messages: JsonObject[]
     liveMessages: LiveMessage[]
     conversationView: 'simple' | 'semi-detailed' | 'detailed'
@@ -193,6 +195,10 @@ export function Conversation(
     [messageEntries, renderedHistoryStart],
   )
   const visibleLiveMessages = messageEntries.filter((entry) => entry.source === 'live')
+  /** The live entry currently receiving stream updates — its thinking blocks stay open in auto mode. */
+  const streamingLiveKey = visibleLiveMessages.length > 0
+    ? visibleLiveMessages[visibleLiveMessages.length - 1].key
+    : undefined
   const conversationRef = useRef<HTMLDivElement>(null)
   const conversationContentRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
@@ -411,7 +417,13 @@ export function Conversation(
                 key={entry.key}
               >
                 {isVisibleConversationMessage(message) && (
-                  <MessageCard message={message} onError={onError} onFork={onFork} />
+                  <MessageCard
+                    live={false}
+                    message={message}
+                    onError={onError}
+                    onFork={onFork}
+                    reasoningMode={reasoningMode}
+                  />
                 )}
                 {calls.map((call) => {
                   const execution = executionsByCallId.get(call.id)
@@ -463,9 +475,11 @@ export function Conversation(
                     ? (
                       <MessageCard
                         key='message'
+                        live={entry.key === streamingLiveKey}
                         message={part.message}
                         onError={onError}
                         onFork={onFork}
+                        reasoningMode={reasoningMode}
                       />
                     )
                     : null

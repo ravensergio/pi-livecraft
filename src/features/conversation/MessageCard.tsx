@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react'
+import { memo, useEffect, useState, type ReactNode } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { isObject } from '../../../shared/is-object.ts'
 import { CopyButton } from './CopyButton.tsx'
@@ -7,27 +7,42 @@ import { Markdown } from './Markdown.tsx'
 import { hasVisibleContent, reasoningTextForDisplay } from './message-display.ts'
 import { formatSpeed, formatTokens, formatTurnCost, type MessageUsage } from './message-usage.ts'
 
+/** How thinking blocks present themselves for the session. */
+export type ReasoningMode = 'auto' | 'expanded' | 'collapsed'
+
 /** Renders a visible protocol message with the default or custom presentation. */
 export const MessageCard = memo(
   function MessageCard(
-    { message, onError, onFork }: {
+    { live = false, message, onError, onFork, reasoningMode = 'auto' }: {
+      live?: boolean
       message: JsonObject
       onError: (cause: unknown) => void
       onFork: (entryId: string) => Promise<boolean>
+      reasoningMode?: ReasoningMode
     },
   ) {
     if (message.role === 'custom' && typeof message.customType === 'string')
       return <DefaultCustomMessage message={message} />
-    return <DefaultMessageCard message={message} onError={onError} onFork={onFork} />
+    return (
+      <DefaultMessageCard
+        live={live}
+        message={message}
+        onError={onError}
+        onFork={onFork}
+        reasoningMode={reasoningMode}
+      />
+    )
   },
 )
 
 const DefaultMessageCard = memo(
   function DefaultMessageCard(
-    { message, onError, onFork }: {
+    { live, message, onError, onFork, reasoningMode }: {
+      live: boolean
       message: JsonObject
       onError: (cause: unknown) => void
       onFork: (entryId: string) => Promise<boolean>
+      reasoningMode: ReasoningMode
     },
   ) {
     const role = String(message.role)
@@ -46,7 +61,13 @@ const DefaultMessageCard = memo(
           </div>
         )}
         <div className='content'>
-          {renderContent(message.content ?? message.output, message.role, onError)}
+          {renderContent(
+            message.content ?? message.output,
+            message.role,
+            onError,
+            live,
+            reasoningMode,
+          )}
         </div>
         {role === 'user' && time && (
           <time
@@ -126,6 +147,8 @@ function renderContent(
   content: unknown,
   role: unknown,
   onError?: (cause: unknown) => void,
+  live = false,
+  reasoningMode: ReasoningMode = 'auto',
 ): ReactNode {
   if (typeof content === 'string') {
     const markdown = (
@@ -152,6 +175,11 @@ function renderContent(
             <ReasoningBlock
               copyablePre={role === 'assistant'}
               key={`reasoning-${contentIndex}`}
+              // A thinking segment is active only while it is the message's last part:
+              // it opens when streaming starts and collapses as soon as text, a tool call,
+              // or the next thinking segment begins.
+              live={live && contentIndex === content.length - 1}
+              mode={reasoningMode}
               onError={onError}
             >
               {reasoningTextForDisplay(role, part.thinking)}
@@ -171,20 +199,62 @@ function renderContent(
   )
 }
 
-/** Presents thinking directly in the thread with a subtle hierarchy. */
+/** Collapsible thinking: a "Thinking" toggle with a one-line teaser when closed.
+ *  In auto mode it follows streaming (open while live, closed once the message ends);
+ *  expanded/collapsed modes keep their default until the user toggles a block. */
 function ReasoningBlock(
-  { children, copyablePre, live = false, onError }: {
+  { children, copyablePre, live = false, mode = 'auto', onError }: {
     children: string
     copyablePre: boolean
     live?: boolean
+    mode?: ReasoningMode
     onError?: (cause: unknown) => void
   },
 ) {
+  const [open, setOpen] = useState(mode === 'expanded' || (mode === 'auto' && live))
+  const [touched, setTouched] = useState(false)
+
+  // Untouched blocks always follow the session mode — including when the user
+  // switches modes mid-conversation (e.g. "hidden" collapses every open block).
+  // Blocks the user toggled manually (touched) keep their chosen state.
+  useEffect(() => {
+    if (!touched) setOpen(mode === 'expanded' || (mode === 'auto' && live))
+  }, [live, mode, touched])
+
   return (
-    <div className={`reasoning${live ? ' conversation-entry' : ''}`}>
-      <Markdown copyablePre={copyablePre} onError={onError}>{children}</Markdown>
+    <div className={`reasoning-block${open ? ' open' : ''}`}>
+      <button
+        aria-expanded={open}
+        className='reasoning-toggle'
+        onClick={() => {
+          setTouched(true)
+          setOpen((current) => !current)
+        }}
+        type='button'
+      >
+        <svg aria-hidden='true' className='reasoning-chevron' viewBox='0 0 16 16'>
+          <path d='m5.5 3.5 5 4.5-5 4.5' />
+        </svg>
+        <span className='reasoning-label'>Thinking</span>
+        {!open && <span className='reasoning-teaser'>{lastNonEmptyLine(children)}</span>}
+      </button>
+      {open && (
+        <div className='reasoning'>
+          <Markdown copyablePre={copyablePre} onError={onError}>{children}</Markdown>
+        </div>
+      )}
     </div>
   )
+}
+
+/** The last non-empty line of a text — used as the collapsed teaser. */
+function lastNonEmptyLine(text: string): string {
+  const lines = text.split('\n')
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index].trim()
+    if (line) return line
+  }
+  return ''
 }
 
 function isImageContent(value: unknown): value is JsonObject & { data: string; mimeType: string } {

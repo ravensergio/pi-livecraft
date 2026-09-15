@@ -293,6 +293,21 @@
   border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
   padding: 6px 12px 7px;
 }
+.reasoning-mode {
+  flex: none;
+  color: var(--muted);
+  font: 500 11px/1.4 ui-sans-serif, system-ui, sans-serif;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.reasoning-mode:hover {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--ink) 50%, transparent);
+}
 .composer-session, .composer-stats {
   display: flex;
   align-items: center;
@@ -300,6 +315,9 @@
   min-width: 0;
   color: var(--muted);
   font: 12px ui-monospace, monospace;
+}
+.composer-session {
+  margin-right: auto;
 }
 .composer-session strong {
   overflow: hidden;

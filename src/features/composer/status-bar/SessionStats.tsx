@@ -1,7 +1,6 @@
-/** Displays session cost and context window usage with a progress bar. */
+/** Displays context window usage with a progress bar. */
 export function SessionStats(
-  { cost, contextClass, contextTokens, contextPercent, contextPercentValue }: {
-    cost: string
+  { contextClass, contextTokens, contextPercent, contextPercentValue }: {
     contextClass: string
     contextTokens: string
     contextPercent: string
@@ -10,10 +9,6 @@ export function SessionStats(
 ) {
   return (
     <div className='composer-stats'>
-      <span>
-        <b>Cost</b>
-        {cost}
-      </span>
       <span className={contextClass}>
         <b>Context</b>
         <small>{contextTokens}</small>

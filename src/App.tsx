@@ -33,6 +33,7 @@ import { Composer } from './features/composer/Composer.tsx'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { sessionActivity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
+import type { ReasoningMode } from './features/conversation/MessageCard.tsx'
 import { useConversationRuntime } from './features/conversation/useConversationRuntime.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import {
@@ -132,6 +133,21 @@ function App() {
       : 'detailed'
   })
   const conversationViewDetail = conversationViewDetails[conversationView]
+  const [reasoningMode, setReasoningMode] = useState<ReasoningMode>(() => {
+    const stored = window.localStorage.getItem('pi-livecraft.reasoning-mode')
+    return stored === 'expanded' || stored === 'collapsed' ? stored : 'auto'
+  })
+  const cycleReasoningMode = useCallback((): void => {
+    setReasoningMode((current) => {
+      const next: ReasoningMode = current === 'auto'
+        ? 'expanded'
+        : current === 'expanded'
+        ? 'collapsed'
+        : 'auto'
+      window.localStorage.setItem('pi-livecraft.reasoning-mode', next)
+      return next
+    })
+  }, [])
 
   // Dialogs and notifications
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
@@ -1174,6 +1190,7 @@ function App() {
                   <Conversation
                     activity={displayedActivity}
                     agentName={selectedSession.activeAgent}
+                    reasoningMode={reasoningMode}
                     conversationView={conversationView}
                     key={selectedSession.id}
                     liveMessages={liveMessages}
@@ -1275,6 +1292,8 @@ function App() {
                         || snapshot.commands.some((command) => command.name === 'agent')}
                       running={selectedSession.status === 'running'}
                       compacting={displayedActivity?.kind === 'compacting'}
+                      reasoningMode={reasoningMode}
+                      onReasoningModeChange={cycleReasoningMode}
                       onSend={handleComposerSend}
                       onAbort={handleComposerAbort}
                       onImprovePrompt={handlePromptImprovement}

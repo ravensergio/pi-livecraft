@@ -9,6 +9,7 @@ import {
   type ClipboardEvent as ReactClipboardEvent,
   type FormEvent,
 } from 'react'
+import type { ReasoningMode } from '../conversation/MessageCard.tsx'
 import { Tooltip } from '../../components/Tooltip.tsx'
 import type {
   JsonObject,
@@ -67,6 +68,8 @@ export const Composer = memo(function Composer({
   focusRequest,
   draftRequest,
   onDraftApplied,
+  reasoningMode = 'auto',
+  onReasoningModeChange,
 }: {
   session: SessionSummary
   snapshot: SessionSnapshot
@@ -438,7 +441,6 @@ export const Composer = memo(function Composer({
           ?.tokens === 'number' && typeof contextUsage.contextWindow === 'number'
     ? `${formatTokens(contextUsage.tokens)}/${formatTokens(contextUsage.contextWindow)}`
     : 'Unavailable'
-  const cost = typeof stats?.cost === 'number' ? `$${stats.cost.toFixed(2)}` : '—'
   const contextClass = typeof contextUsage?.percent === 'number'
     ? contextUsage.percent >= 90
       ? 'context-danger'
@@ -693,11 +695,12 @@ export const Composer = memo(function Composer({
           session={session}
           running={running}
           compacting={compacting}
-          cost={cost}
           contextClass={contextClass}
           contextTokens={contextTokens}
           contextPercent={contextPercent}
           contextPercentValue={contextPercentValue}
+          reasoningMode={reasoningMode}
+          onReasoningModeChange={onReasoningModeChange}
         />
       </div>
       {promptSave && (
