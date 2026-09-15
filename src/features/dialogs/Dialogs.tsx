@@ -97,6 +97,13 @@ export function AskUserQuestionDialog(
   const complete = request.questions.every((_, index) => isAnswered(index))
   const lastQuestion = activeQuestion === request.questions.length - 1
 
+  /** Advances to the next question, or submits on the last one (Enter-key path). */
+  function advanceOrSubmit(): void {
+    if (!isAnswered(activeQuestion)) return
+    if (lastQuestion) void respond(false)
+    else setActiveQuestion((index) => index + 1)
+  }
+
   if (minimized) {
     return (
       <button
@@ -131,6 +138,14 @@ export function AskUserQuestionDialog(
   return (
     <div
       className='ask-user-question-backdrop'
+      // Enter submits/advances when an option is selected and focus is not on a
+      // control (buttons/textareas handle their own Enter).
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' || event.shiftKey) return
+        const tag = (event.target as HTMLElement).tagName
+        if (tag === 'TEXTAREA' || tag === 'BUTTON') return
+        advanceOrSubmit()
+      }}
       onClick={canMinimize
         ? () => setMinimized(true)
         : undefined}
@@ -236,6 +251,13 @@ export function AskUserQuestionDialog(
             {!question.multiSelect && (
               <textarea
                 aria-label={`Free response: ${cleanQuestion}`}
+                // Enter submits/advances; Shift+Enter keeps the newline.
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    advanceOrSubmit()
+                  }
+                }}
                 onChange={(event) =>
                   setFreeText((current) =>
                     current.map((text, index) =>

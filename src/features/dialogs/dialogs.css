@@ -228,6 +228,9 @@
   border-top: 1px solid var(--line);
   padding: 10px 12px;
   background: var(--canvas);
+  /* Always reachable, no matter how many questions/options scroll above. */
+  position: sticky;
+  bottom: 0;
 }
 .ask-user-question-actions > div {
   display: flex;
@@ -420,11 +423,14 @@
 .modal h2 {
   margin: 0 0 8px;
   letter-spacing: -0.025em;
+  /* Was browser-default h2 (~24px on the 16px base) — sized like an h3. */
+  font-size: 16px;
 }
 .modal p {
   margin: 0 0 18px;
   color: var(--muted);
   line-height: 1.55;
+  font-size: 14px;
 }
 .option-list {
   display: grid;
@@ -432,6 +438,7 @@
 }
 .option-list button {
   padding: 11px;
+  font-size: 14px;
 }
 .modal-actions {
   display: flex;
