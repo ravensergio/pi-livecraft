@@ -30,6 +30,8 @@ const CANDIDATE_BUFFER = 100
 const HEAD_CHUNK_BYTES = 64 * 1024
 const TAIL_CHUNK_BYTES = 64 * 1024
 const TAIL_SCAN_BUDGET = 2 * 1024 * 1024
+const NAME_SCAN_BUDGET = 8 * 1024 * 1024
+const NAME_CHUNK_BYTES = 256 * 1024
 
 /** Reads only the metadata required to resume a Pi session. */
 export async function listRecentPiSessions(
@@ -97,8 +99,11 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
     return null
   }
   let lines: string[]
+  let partialRead = false
   try {
-    lines = await readSessionLines(canonicalPath)
+    const loaded = await readSessionLines(canonicalPath)
+    lines = loaded.lines
+    partialRead = loaded.partial
   } catch {
     return null
   }
@@ -135,6 +140,18 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
     }
   }
   if (!hasMessage) return null
+  // Renames append a session_info entry, which can sit in the skipped middle of a large file.
+  if (name === undefined && partialRead) {
+    const rescued = await findLatestSessionInfo(canonicalPath)
+    if (rescued) {
+      name = rescued.name
+      if (
+        rescued.timestamp !== undefined
+        && (lastMessageAt === undefined || rescued.timestamp > lastMessageAt)
+      )
+        lastMessageAt = rescued.timestamp
+    }
+  }
   const createdAt = Date.parse(header.timestamp)
   return {
     id: header.id,
@@ -150,9 +167,10 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
  *  Gigabytes of middle history never need to be parsed to render the recent-session list.
  *  A single entry may itself be huge (tool outputs), so the end is scanned backward in chunks
  *  until a complete JSON line is found rather than assuming a fixed tail fits. */
-async function readSessionLines(path: string): Promise<string[]> {
+async function readSessionLines(path: string): Promise<{ lines: string[]; partial: boolean }> {
   const size = (await stat(path)).size
-  if (size <= HEAD_CHUNK_BYTES + TAIL_CHUNK_BYTES) return (await readFile(path, 'utf8')).split('\n')
+  if (size <= HEAD_CHUNK_BYTES + TAIL_CHUNK_BYTES)
+    return { lines: (await readFile(path, 'utf8')).split('\n'), partial: false }
   let handle: FileHandle | undefined
   try {
     handle = await open(path, 'r')
@@ -169,10 +187,51 @@ async function readSessionLines(path: string): Promise<string[]> {
       tail = chunk.subarray(0, bytesRead).toString('utf8') + tail
       scanned += chunkSize
     }
-    return (head.subarray(0, headBytes).toString('utf8') + tail).split('\n')
+    return {
+      lines: (head.subarray(0, headBytes).toString('utf8') + tail).split('\n'),
+      partial: true,
+    }
   } finally {
     await handle?.close().catch(() => undefined)
   }
+}
+
+/** Recovers a session name that the head/tail read missed: scans backward from the end of the
+ *  file and returns the newest `session_info` entry. The first complete marker line found while
+ *  scanning backward is by definition the latest rename. */
+async function findLatestSessionInfo(
+  path: string,
+): Promise<{ name: string; timestamp?: number } | null> {
+  const size = (await stat(path)).size
+  let handle: FileHandle | undefined
+  try {
+    handle = await open(path, 'r')
+    let position = size
+    let scanned = 0
+    let tail = ''
+    while (position > 0 && scanned < NAME_SCAN_BUDGET) {
+      const chunkSize = Math.min(NAME_CHUNK_BYTES, position)
+      position -= chunkSize
+      const chunk = Buffer.alloc(chunkSize)
+      const { bytesRead } = await handle.read(chunk, 0, chunkSize, position)
+      tail = chunk.subarray(0, bytesRead).toString('utf8') + tail
+      scanned += bytesRead
+      const markerIndex = tail.lastIndexOf('"type":"session_info"')
+      if (markerIndex === -1) continue
+      const lineStart = tail.lastIndexOf('\n', markerIndex) + 1
+      if (lineStart === 0 && position > 0) continue // Line starts before the window; keep growing.
+      const lineEnd = tail.indexOf('\n', markerIndex)
+      const line = lineEnd === -1 ? tail.slice(lineStart) : tail.slice(lineStart, lineEnd)
+      const value = parseLine(line)
+      if (value?.type !== 'session_info') break
+      if (typeof value.name !== 'string' || !value.name.trim()) break
+      const parsed = Date.parse(typeof value.timestamp === 'string' ? value.timestamp : '')
+      return { name: value.name.trim(), timestamp: Number.isNaN(parsed) ? undefined : parsed }
+    }
+  } finally {
+    await handle?.close().catch(() => undefined)
+  }
+  return null
 }
 
 /** True when the accumulated text contains at least one complete JSON line. */
