@@ -167,12 +167,12 @@
   min-width: 0;
   flex: 1;
   color: var(--muted);
-  opacity: 0.75;
-  font: 400 13px/1.5 ui-sans-serif, system-ui, sans-serif;
+  opacity: 0.9;
+  font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif;
 }
 .reasoning {
   margin: 0 0 13px;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--ink) 70%, var(--canvas));
   font-size: 16px;
   line-height: 1.2;
   overflow-wrap: anywhere;
