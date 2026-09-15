@@ -167,12 +167,15 @@ export function AskUserQuestionDialog(
         <div className='ask-user-question-heading'>
           <div className='ask-user-question-heading-row'>
             <div className='ask-user-question-heading-copy'>
-              <span>
+              <span id='ask-user-question-title'>
                 {sessionName ? `Question from session “${sessionName}”` : 'Pi needs your input'}
               </span>
-              <strong id='ask-user-question-title'>
-                Question {activeQuestion + 1} sur {request.questions.length}
-              </strong>
+              {/* Counter only earns its space with multiple questions. */}
+              {request.questions.length > 1 && (
+                <strong>
+                  Question {activeQuestion + 1} of {request.questions.length}
+                </strong>
+              )}
             </div>
             <div className='ask-user-question-heading-actions'>
               {onOpenSession && (

@@ -19,13 +19,17 @@
   inset: 0;
   z-index: 25;
   display: grid;
-  place-items: center;
+  /* Bottom-anchored (was centered): sits low, close to the composer. */
+  align-items: end;
+  justify-items: center;
   padding: 20px;
+  padding-bottom: 4vh;
   background: color-mix(in srgb, var(--ink) 18%, transparent);
 }
 
 .ask-user-question-backdrop .ask-user-question {
-  max-height: min(60vh, 600px);
+  /* Extra-tall budget (two +20% steps from the original 60vh/600px). */
+  max-height: min(86vh, 864px);
   margin: 0;
   border-radius: 14px;
   box-shadow: var(--shadow);
