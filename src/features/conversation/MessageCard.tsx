@@ -127,8 +127,12 @@ function renderContent(
   role: unknown,
   onError?: (cause: unknown) => void,
 ): ReactNode {
-  if (typeof content === 'string')
-    return <Markdown copyablePre={role === 'assistant'} onError={onError}>{content}</Markdown>
+  if (typeof content === 'string') {
+    const markdown = (
+      <Markdown copyablePre={role === 'assistant'} onError={onError}>{content}</Markdown>
+    )
+    return role === 'assistant' ? <div className='reply-block'>{markdown}</div> : markdown
+  }
   if (!Array.isArray(content)) return null
   return (
     <>
@@ -153,16 +157,14 @@ function renderContent(
               {reasoningTextForDisplay(role, part.thinking)}
             </ReasoningBlock>
           )
-        if (part.type === 'text' && typeof part.text === 'string')
-          return (
-            <Markdown
-              copyablePre={role === 'assistant'}
-              key={`text-${contentIndex}`}
-              onError={onError}
-            >
-              {part.text}
-            </Markdown>
+        if (part.type === 'text' && typeof part.text === 'string') {
+          const markdown = (
+            <Markdown copyablePre={role === 'assistant'} onError={onError}>{part.text}</Markdown>
           )
+          return role === 'assistant'
+            ? <div className='reply-block' key={`text-${contentIndex}`}>{markdown}</div>
+            : markdown
+        }
         return null
       })}
     </>

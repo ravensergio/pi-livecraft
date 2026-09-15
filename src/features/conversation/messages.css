@@ -8,13 +8,13 @@
 .message.user {
   width: fit-content;
   max-width: 78%;
-  margin-right: max(0px, calc(100% - 716px));
+  margin-right: max(0px, calc(100% - 762px));
   margin-left: auto;
   padding: 13px 16px;
   border-radius: 14px 14px 4px;
-  background: var(--accent);
-  color: var(--surface);
-  box-shadow: var(--shadow-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--ink);
 }
 .message.user.pending-steering {
   border: 1px dashed var(--line-strong);
@@ -90,8 +90,8 @@
 .message-time {
   display: block;
   margin-top: 8px;
-  color: color-mix(in srgb, var(--surface) 76%, transparent);
-  font: 10px ui-monospace, monospace;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+  font: 11px ui-monospace, monospace;
   text-align: right;
 }
 .message-image {
@@ -114,6 +114,18 @@
 }
 .content p {
   margin: 0 0 13px;
+}
+.reply-block {
+  margin: 0 0 13px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+  border-radius: 9px;
+}
+.reply-block > :first-child {
+  margin-top: 0;
+}
+.reply-block > :last-child {
+  margin-bottom: 0;
 }
 .reasoning {
   margin: 0 0 13px;
@@ -219,12 +231,11 @@
   font-weight: 650;
 }
 .user .content a {
-  color: var(--surface);
-  text-decoration: underline;
+  color: var(--accent);
 }
 .user .content pre {
-  border-color: color-mix(in srgb, var(--surface) 13%, transparent);
-  background: color-mix(in srgb, var(--canvas) 60%, var(--ink));
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--canvas) 60%, var(--surface));
 }
 .pending-steering .content pre {
   border-color: var(--line);
