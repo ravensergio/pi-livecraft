@@ -138,12 +138,20 @@ export function AskUserQuestionDialog(
   return (
     <div
       className='ask-user-question-backdrop'
-      // Enter submits/advances when an option is selected and focus is not on a
-      // control (buttons/textareas handle their own Enter).
+      // Enter submits/advances. Option buttons are special: after a mouse click
+      // focus stays on them, so their native Enter would TOGGLE the selection —
+      // we intercept that and submit/advance instead. Other buttons (Cancel,
+      // Next…) keep their native Enter behavior.
       onKeyDown={(event) => {
         if (event.key !== 'Enter' || event.shiftKey) return
-        const tag = (event.target as HTMLElement).tagName
-        if (tag === 'TEXTAREA' || tag === 'BUTTON') return
+        const target = event.target as HTMLElement
+        if (target.tagName === 'TEXTAREA') return
+        if (target.closest('.ask-user-options')) {
+          event.preventDefault()
+          advanceOrSubmit()
+          return
+        }
+        if (target.tagName === 'BUTTON') return
         advanceOrSubmit()
       }}
       onClick={canMinimize
