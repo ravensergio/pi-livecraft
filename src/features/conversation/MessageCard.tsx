@@ -152,7 +152,9 @@ function renderContent(
 ): ReactNode {
   if (typeof content === 'string') {
     const markdown = (
-      <Markdown copyablePre={role === 'assistant'} onError={onError}>{content}</Markdown>
+      <Markdown breaks={role !== 'assistant'} copyablePre={role === 'assistant'} onError={onError}>
+        {content}
+      </Markdown>
     )
     return role === 'assistant' ? <div className='reply-block'>{markdown}</div> : markdown
   }
@@ -188,6 +190,7 @@ function renderContent(
         if (part.type === 'text' && typeof part.text === 'string') {
           const markdown = (
             <Markdown
+              breaks={role !== 'assistant'}
               copyablePre={role === 'assistant'}
               key={`text-${contentIndex}`}
               onError={onError}
