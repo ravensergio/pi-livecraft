@@ -10,7 +10,8 @@
     bg: 'var(--surface)', fg: 'var(--ink)', border: 'var(--line-strong)', dim: 'var(--muted)',
     green: 'var(--success)', gold: 'var(--warning)', red: 'var(--danger)', barRed: 'var(--danger)'
   };
-  const SHADOW = '0 4px 18px color-mix(in srgb, var(--ink) 16%, transparent)';
+  // Subtle lift, tinted like the app's borders (not a black glow).
+  const SHADOW = '0 2px 10px color-mix(in srgb, var(--ink) 8%, transparent)';
 
   // Ported from a Tampermonkey script: GM_* storage replaced with localStorage.
   const NS = 'pi-livecraft.cost-overlay.'
@@ -246,6 +247,7 @@
     feedBtn.style.color = feedOpen ? C.green : C.dim;
     if (feedOpen) requestAnimationFrame(() => { feedPanel.scrollTop = feedPanel.scrollHeight; });
   }
+  toggleFeed(); // start with the monitor feed expanded
   const FEED_TPS = /^(.*?)( @ [\d.]+)( t\/s)(.*)$/;
   let feedSeen = 0;
   function feedLineEl(ln) {
