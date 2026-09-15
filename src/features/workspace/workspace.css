@@ -304,7 +304,8 @@
   border: 1px solid var(--accent);
   border-radius: 9px;
   padding: 0 12px;
-  background: var(--accent);
+  /* Darker fill than raw accent in both themes; hover state matched below. */
+  background: color-mix(in srgb, var(--accent) 72%, black);
   color: var(--on-accent);
   font-size: 13px;
   font-weight: 700;
