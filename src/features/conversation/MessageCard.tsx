@@ -214,11 +214,12 @@ function ReasoningBlock(
   const [open, setOpen] = useState(mode === 'expanded' || (mode === 'auto' && live))
   const [touched, setTouched] = useState(false)
 
-  // Untouched blocks always follow the session mode — including when the user
-  // switches modes mid-conversation (e.g. "hidden" collapses every open block).
-  // Blocks the user toggled manually (touched) keep their chosen state.
+  // Mode switches apply to past blocks only for hidden/auto (cheap: closing or
+  // following the stream). "Expanded" never re-opens history — it only affects
+  // blocks created from that moment on. Manually toggled blocks keep their state.
   useEffect(() => {
-    if (!touched) setOpen(mode === 'expanded' || (mode === 'auto' && live))
+    if (touched || mode === 'expanded') return
+    setOpen(live)
   }, [live, mode, touched])
 
   return (
@@ -236,7 +237,7 @@ function ReasoningBlock(
           <path d='m5.5 3.5 5 4.5-5 4.5' />
         </svg>
         <span className='reasoning-label'>Thinking</span>
-        {!open && <span className='reasoning-teaser'>{lastNonEmptyLine(children)}</span>}
+        {!open && <span className='reasoning-teaser'>{reasoningTeaser(children)}</span>}
       </button>
       {open && (
         <div className='reasoning'>
@@ -247,14 +248,28 @@ function ReasoningBlock(
   )
 }
 
-/** The last non-empty line of a text — used as the collapsed teaser. */
-function lastNonEmptyLine(text: string): string {
-  const lines = text.split('\n')
-  for (let index = lines.length - 1; index >= 0; index -= 1) {
-    const line = lines[index].trim()
-    if (line) return line
-  }
-  return ''
+// Sized to fit two visual lines in the 762px conversation column at 13px:
+// ~98 chars/line. The teaser must always show the END of the thinking.
+const TEASER_MAX_CHARS = 190
+const TEASER_MIN_TAIL_CHARS = 90
+
+/** Tail teaser for collapsed thinking: the last ~240 characters, snapped back to a
+ *  clean break (newline or sentence end) when that still leaves a substantial tail. */
+function reasoningTeaser(text: string): string {
+  const trimmed = text.trim()
+  if (!trimmed) return ''
+  if (trimmed.length <= TEASER_MAX_CHARS) return trimmed
+  const slice = trimmed.slice(-TEASER_MAX_CHARS)
+  const newline = slice.lastIndexOf('\n')
+  const sentence = Math.max(
+    slice.lastIndexOf('. '),
+    slice.lastIndexOf('! '),
+    slice.lastIndexOf('? '),
+  )
+  const cut = Math.max(newline, sentence)
+  if (cut > TEASER_MAX_CHARS / 2 && slice.length - cut - 1 >= TEASER_MIN_TAIL_CHARS)
+    return `…${slice.slice(cut + 1).trim()}`
+  return `…${slice.trim()}`
 }
 
 function isImageContent(value: unknown): value is JsonObject & { data: string; mimeType: string } {
