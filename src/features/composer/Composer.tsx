@@ -341,6 +341,7 @@ export const Composer = memo(function Composer({
   /** Sends text and images in the same RPC command, restoring the draft on failure. */
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault()
+    if (submitting) return
     const nextMessage = message.trim()
     if (preparingImages || (!nextMessage && images.length === 0)) return
     if (images.length > 0 && !supportsImages) {
@@ -495,7 +496,6 @@ export const Composer = memo(function Composer({
       )}
       <textarea
         aria-label='Message'
-        disabled={submitting}
         onPaste={(event) => void handlePaste(event)}
         ref={textareaRef}
         value={message}

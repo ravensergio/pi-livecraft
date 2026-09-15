@@ -790,25 +790,30 @@ function App() {
       if (selectedSessionStatus === 'running') command.streamingBehavior = behavior
       if (isSteering) addPendingSteering(message)
       const optimisticId = !isSteering && !isCommand ? addOptimisticUserMessage(message) : undefined
-      try {
-        await sendPiCommand(selectedId, command)
-        const sentSession = sessions.find((session) => session.id === selectedId)
-        const shouldNameSession = !isCommand && sentSession?.name === 'New session'
-          && !snapshot
-            .messages
-            .some((entry) => entry.role === 'user')
-        if (sentSession && shouldNameSession) nameSessionFromFirstPrompt(sentSession, message)
-        await refreshSessions()
-        setScrollToBottomRequest((current) => current + 1)
-      } catch (cause) {
-        if (optimisticId) removeLiveMessage(optimisticId)
-        if (isSteering) removePendingSteering(message)
-        throw cause
-      }
+      // Fire without blocking: the manager only resolves a prompt at turn end,
+      // and we want the composer usable (steer / queue) mid-turn.
+      void (async () => {
+        try {
+          await sendPiCommand(selectedId, command)
+          const sentSession = sessions.find((session) => session.id === selectedId)
+          const shouldNameSession = !isCommand && sentSession?.name === 'New session'
+            && !snapshot
+              .messages
+              .some((entry) => entry.role === 'user')
+          if (sentSession && shouldNameSession) nameSessionFromFirstPrompt(sentSession, message)
+          await refreshSessions()
+        } catch (cause) {
+          if (optimisticId) removeLiveMessage(optimisticId)
+          if (isSteering) removePendingSteering(message)
+          showToast('error', messageOf(cause))
+        }
+      })()
+      setScrollToBottomRequest((current) => current + 1)
     },
     [
       addOptimisticUserMessage,
       addPendingSteering,
+      messageOf,
       nameSessionFromFirstPrompt,
       refreshSessions,
       removeLiveMessage,
@@ -816,6 +821,7 @@ function App() {
       selectedId,
       selectedSessionStatus,
       sessions,
+      showToast,
       snapshot.messages,
     ],
   )
