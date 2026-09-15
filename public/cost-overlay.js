@@ -10,8 +10,8 @@
     bg: 'var(--surface)', fg: 'var(--ink)', border: 'var(--line-strong)', dim: 'var(--muted)',
     green: 'var(--success)', gold: 'var(--warning)', red: 'var(--danger)', barRed: 'var(--danger)'
   };
-  // Subtle lift, tinted like the app's borders (not a black glow).
-  const SHADOW = '0 2px 10px color-mix(in srgb, var(--ink) 8%, transparent)';
+  // The app's own theme-aware shadow (matches every other card in the UI).
+  const SHADOW = 'var(--shadow-soft)';
 
   // Ported from a Tampermonkey script: GM_* storage replaced with localStorage.
   const NS = 'pi-livecraft.cost-overlay.'
