@@ -1,6 +1,7 @@
 .composer {
   position: relative;
-  margin: 0 auto 16px;
+  margin: 0 0 16px;
+  max-width: 762px;
   overflow: visible;
   border-radius: 14px;
   transition: border-color 180ms ease-out, box-shadow 180ms ease-out;
@@ -73,6 +74,8 @@
   padding: 18px 18px 16px;
   background: transparent;
   color: var(--ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
   line-height: 1.55;
 }
 .composer textarea::placeholder {

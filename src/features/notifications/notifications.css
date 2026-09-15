@@ -1,6 +1,7 @@
 .composer-area {
   position: relative;
   min-width: 0;
+  padding-inline: max(28px, calc((100% - 900px) / 2));
 }
 .toast-stack {
   position: absolute;
