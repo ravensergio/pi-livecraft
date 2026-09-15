@@ -115,17 +115,30 @@
 .content p {
   margin: 0 0 13px;
 }
+/* REVERT POINT — original (pre user-bubble-look) was:
 .reply-block {
   margin: 0 0 13px;
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
   border-radius: 9px;
+} (no background wash at all)
+*/
+.reply-block {
+  margin: 0 0 13px;
+  padding: 13px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+  border-radius: 14px 14px 4px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
 }
 .reply-block > :first-child {
   margin-top: 0;
 }
 .reply-block > :last-child {
   margin-bottom: 0;
+}
+/* Dark theme: accent is a light color there, so LESS accent = darker wash. */
+[data-theme="dark"] .reply-block {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
 }
 .reasoning-block {
   margin: 0 0 13px;
