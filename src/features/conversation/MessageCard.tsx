@@ -228,7 +228,7 @@ function ReasoningBlock(
   // blocks created from that moment on. Manually toggled blocks keep their state.
   useEffect(() => {
     if (touched || mode === 'expanded') return
-    setOpen(live)
+    setOpen(mode === 'auto' && live)
   }, [live, mode, touched])
 
   return (
