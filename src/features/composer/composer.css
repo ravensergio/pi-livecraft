@@ -296,7 +296,7 @@
   gap: 7px;
   min-width: 0;
   color: var(--muted);
-  font: 10px ui-monospace, monospace;
+  font: 12px ui-monospace, monospace;
 }
 .composer-session strong {
   overflow: hidden;
@@ -324,11 +324,11 @@
 }
 .composer-stats b {
   color: var(--subtle);
-  font: 650 9px ui-sans-serif, system-ui, sans-serif;
+  font: 650 11px ui-sans-serif, system-ui, sans-serif;
 }
 .composer-stats small {
   color: currentColor;
-  font: 10px ui-monospace, monospace;
+  font: 12px ui-monospace, monospace;
 }
 .composer-stats progress {
   width: 48px;

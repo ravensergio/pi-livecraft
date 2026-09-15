@@ -439,11 +439,11 @@ export const Composer = memo(function Composer({
     : 'Unavailable'
   const cost = typeof stats?.cost === 'number' ? `$${stats.cost.toFixed(2)}` : '—'
   const contextClass = typeof contextUsage?.percent === 'number'
-    ? contextUsage.percent >= 40
+    ? contextUsage.percent >= 90
       ? 'context-danger'
-      : contextUsage.percent >= 30
+      : contextUsage.percent >= 70
       ? 'context-warning-strong'
-      : contextUsage.percent >= 20
+      : contextUsage.percent >= 40
       ? 'context-warning'
       : ''
     : ''

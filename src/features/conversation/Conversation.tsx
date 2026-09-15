@@ -11,7 +11,13 @@ import {
 } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import type { Activity } from './activity.ts'
-import { turnUsageByMessage } from './message-usage.ts'
+import {
+  addUsage,
+  createEmptyUsage,
+  nearestRequestDuration,
+  turnUsageByMessage,
+  type MessageUsage,
+} from './message-usage.ts'
 import {
   assistantTurnParts,
   conversationMessageEntries,
@@ -40,6 +46,7 @@ export function Conversation(
     conversationView,
     navigationRequest,
     pendingSteering,
+    requestDurations,
     repositoryRoot,
     scrollToBottomRequest,
     toolDurations,
@@ -55,6 +62,7 @@ export function Conversation(
     conversationView: 'simple' | 'semi-detailed' | 'detailed'
     navigationRequest?: { id: number; target: SessionAnalysisTarget }
     pendingSteering: string[]
+    requestDurations: ReadonlyMap<number, number>
     repositoryRoot?: string | null
     scrollToBottomRequest: number
     toolDurations: ReadonlyMap<string, number>
@@ -98,17 +106,65 @@ export function Conversation(
       ]),
     [resultsByCallId, toolExecutions],
   )
-  const { usagesByMessage, turnNumbers } = useMemo(
+  /** Aggregates each user-initiated turn into a single footer of billed counters. */
+  const turnFooters = useMemo(
     () => {
       const usagesByMessage = turnUsageByMessage(allMessages, resolvedCallIds)
-      const turnNumbers = new Map<number, number>()
-      let turnNum = 0
-      for (const idx of [...usagesByMessage.keys()].sort((a, b) => a - b)) {
-        turnNumbers.set(idx, ++turnNum)
+      const footers = new Map<
+        number,
+        { durationMs?: number; turnNumber: number; usage: MessageUsage }
+      >()
+      let turnNumber = 0
+      let currentTurn: {
+        endIndex: number
+        lastTs: number | undefined
+        usage: MessageUsage
+        userTs: number | undefined
+      } | undefined
+      const flushTurn = () => {
+        if (!currentTurn || currentTurn.endIndex === -1) return
+        turnNumber += 1
+        let durationMs: number | undefined
+        if (currentTurn.userTs !== undefined) {
+          // Live turns use the measured agent_start→agent_settled wall time;
+          // history falls back to completion timestamps.
+          durationMs = requestDurations.get(currentTurn.userTs)
+            ?? nearestRequestDuration(requestDurations, currentTurn.userTs)
+        }
+        if (
+          (durationMs === undefined || durationMs <= 0)
+          && currentTurn.lastTs !== undefined && currentTurn.userTs !== undefined
+        ) {
+          durationMs = currentTurn.lastTs - currentTurn.userTs
+        }
+        footers.set(currentTurn.endIndex, {
+          durationMs: durationMs !== undefined && durationMs > 0 ? durationMs : undefined,
+          turnNumber,
+          usage: currentTurn.usage,
+        })
       }
-      return { usagesByMessage, turnNumbers }
+      allMessages.forEach((message, index) => {
+        if (message.role === 'user') {
+          flushTurn()
+          currentTurn = {
+            endIndex: -1,
+            lastTs: undefined,
+            usage: createEmptyUsage(),
+            userTs: typeof message.timestamp === 'number' ? message.timestamp : undefined,
+          }
+          return
+        }
+        if (message.role !== 'assistant' || !currentTurn) return
+        const usage = usagesByMessage.get(index)
+        if (!usage) return
+        addUsage(currentTurn.usage, usage)
+        currentTurn.endIndex = index
+        if (typeof message.timestamp === 'number') currentTurn.lastTs = message.timestamp
+      })
+      flushTurn()
+      return footers
     },
-    [allMessages, resolvedCallIds],
+    [allMessages, requestDurations, resolvedCallIds],
   )
   const liveToolCallIds = useMemo(
     () =>
@@ -344,7 +400,7 @@ export function Conversation(
           if (entry.source === 'history') {
             const index = entry.historyIndex
             const calls = showToolCalls ? toolCallsInMessage(message) : []
-            const usage = usagesByMessage.get(index)
+            const footer = turnFooters.get(index)
             if (!isVisibleConversationMessage(message) && calls.length === 0) return null
             return (
               <div
@@ -383,7 +439,13 @@ export function Conversation(
                     />
                   )
                 })}
-                {usage && <TurnUsage turnNumber={turnNumbers.get(index)} usage={usage} />}
+                {footer && (
+                  <TurnUsage
+                    durationMs={footer.durationMs}
+                    turnNumber={footer.turnNumber}
+                    usage={footer.usage}
+                  />
+                )}
               </div>
             )
           }

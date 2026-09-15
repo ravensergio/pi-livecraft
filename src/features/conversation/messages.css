@@ -2,9 +2,13 @@
   position: relative;
   margin: 0 0 26px;
 }
+.message.user .content {
+  font-size: 16px;
+}
 .message.user {
   width: fit-content;
   max-width: 78%;
+  margin-right: max(0px, calc(100% - 716px));
   margin-left: auto;
   padding: 13px 16px;
   border-radius: 14px 14px 4px;
@@ -69,7 +73,7 @@
   padding-bottom: 14px;
   border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
   color: var(--muted);
-  font: 10px ui-monospace, monospace;
+  font: 12px ui-monospace, monospace;
   animation: turn-usage-fade-in 300ms ease-out both;
 }
 .turn-usage div {
@@ -100,7 +104,7 @@
 }
 .content {
   overflow-wrap: anywhere;
-  font: 14px/1.7 ui-sans-serif, system-ui, sans-serif;
+  font: 18px/1.3 ui-sans-serif, system-ui, sans-serif;
 }
 .content > :first-child, .reasoning > :first-child {
   margin-top: 0;
@@ -114,9 +118,12 @@
 .reasoning {
   margin: 0 0 13px;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.2;
   overflow-wrap: anywhere;
+}
+.reasoning p {
+  margin-bottom: 8px;
 }
 .reasoning pre {
   overflow-x: auto;

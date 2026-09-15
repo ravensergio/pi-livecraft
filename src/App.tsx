@@ -1176,6 +1176,7 @@ function App() {
                     onError={handleConversationError}
                     onFork={handleForkConversation}
                     pendingSteering={pendingSteering}
+                    requestDurations={observedRequestDurations}
                     repositoryRoot={gitSnapshot?.root}
                     scrollToBottomRequest={scrollToBottomRequest}
                     workingDirectory={selectedSession.cwd}

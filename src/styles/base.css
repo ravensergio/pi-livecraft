@@ -21,7 +21,7 @@
   /* ── Derived neutrals ── */
   --surface-raised: color-mix(in srgb, var(--surface) 92%, var(--canvas));
   --sidebar: color-mix(in srgb, var(--canvas) 96%, var(--ink));
-  --muted: color-mix(in srgb, var(--ink) 55%, var(--canvas));
+  --muted: color-mix(in srgb, var(--ink) 65%, var(--canvas));
   --subtle: color-mix(in srgb, var(--ink) 42%, var(--canvas));
   --line: color-mix(in srgb, var(--ink) 12%, var(--canvas));
   --panel-line: color-mix(in srgb, var(--ink) 4%, var(--canvas));

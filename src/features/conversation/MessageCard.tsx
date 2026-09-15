@@ -5,7 +5,7 @@ import { CopyButton } from './CopyButton.tsx'
 import { ForkButton } from './ForkButton.tsx'
 import { Markdown } from './Markdown.tsx'
 import { hasVisibleContent, reasoningTextForDisplay } from './message-display.ts'
-import { formatTokens, formatTurnCost, type MessageUsage } from './message-usage.ts'
+import { formatSpeed, formatTokens, formatTurnCost, type MessageUsage } from './message-usage.ts'
 
 /** Renders a visible protocol message with the default or custom presentation. */
 export const MessageCard = memo(
@@ -75,7 +75,14 @@ function DefaultCustomMessage({ message }: { message: JsonObject & { customType?
 }
 
 /** Displays counters billed by Pi for a completed assistant response. */
-export function TurnUsage({ turnNumber, usage }: { turnNumber?: number; usage: MessageUsage }) {
+export function TurnUsage(
+  { durationMs, turnNumber, usage }: {
+    durationMs?: number
+    turnNumber?: number
+    usage: MessageUsage
+  },
+) {
+  const speed = durationMs && durationMs > 0 ? usage.output / (durationMs / 1000) : null
   return (
     <dl className='turn-usage'>
       {turnNumber !== undefined && (
@@ -85,8 +92,8 @@ export function TurnUsage({ turnNumber, usage }: { turnNumber?: number; usage: M
         </div>
       )}
       <div>
-        <dt>Cost</dt>
-        <dd>{formatTurnCost(usage.cost)}</dd>
+        <dt>{speed !== null ? 'Speed' : 'Cost'}</dt>
+        <dd>{speed !== null ? formatSpeed(speed) : formatTurnCost(usage.cost)}</dd>
       </div>
       <div>
         <dt>Cache read</dt>
