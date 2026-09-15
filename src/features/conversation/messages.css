@@ -232,8 +232,10 @@
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--line);
 }
+/* accent-hover = accent pushed toward ink: brighter in dark theme, deeper in
+   light — keeps bold readable on the accent-washed reply bubble. */
 .message.assistant .content strong {
-  color: color-mix(in srgb, var(--accent) 82%, transparent);
+  color: var(--accent-hover);
 }
 .message.assistant .content ul ::marker,
 .message.assistant .content ol ::marker {
