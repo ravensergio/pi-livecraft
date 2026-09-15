@@ -187,7 +187,13 @@ function renderContent(
           )
         if (part.type === 'text' && typeof part.text === 'string') {
           const markdown = (
-            <Markdown copyablePre={role === 'assistant'} onError={onError}>{part.text}</Markdown>
+            <Markdown
+              copyablePre={role === 'assistant'}
+              key={`text-${contentIndex}`}
+              onError={onError}
+            >
+              {part.text}
+            </Markdown>
           )
           return role === 'assistant'
             ? <div className='reply-block' key={`text-${contentIndex}`}>{markdown}</div>
