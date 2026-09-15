@@ -75,7 +75,7 @@
   --file-icon-purple: #a074c4;
   --file-icon-pink: #f55385;
   --file-icon-slate: #6d8086;
-  --sidebar: color-mix(in srgb, var(--canvas) 90%, var(--ink));
+  --sidebar: color-mix(in srgb, var(--canvas) 96%, var(--ink));
   --on-accent: #000000;
   --on-danger: #ffffff;
   color-scheme: dark;
