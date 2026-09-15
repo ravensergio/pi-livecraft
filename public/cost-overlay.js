@@ -5,10 +5,12 @@
   const POLL_MS  = 2000;
   const RED_PCT  = 0.95;
 
+  // Themed via the app's CSS variables so the card follows light/dark switches.
   const C = {
-    bg: '#1d1d1d', fg: '#e3e3e3', border: '#2b2b2b', dim: '#8a8a8a',
-    green: '#4ade80', gold: '#fbbf24', red: '#d66c6c', barRed: '#d05858'
+    bg: 'var(--surface)', fg: 'var(--ink)', border: 'var(--line-strong)', dim: 'var(--muted)',
+    green: 'var(--success)', gold: 'var(--warning)', red: 'var(--danger)', barRed: 'var(--danger)'
   };
+  const SHADOW = '0 4px 18px color-mix(in srgb, var(--ink) 16%, transparent)';
 
   // Ported from a Tampermonkey script: GM_* storage replaced with localStorage.
   const NS = 'pi-livecraft.cost-overlay.'
@@ -26,7 +28,7 @@
     'width:194px', 'background:' + C.bg, 'color:' + C.fg,
     'border:1px solid ' + C.border, 'border-radius:12px',
     'padding:10px 12px', 'font:12px/1.55 "Segoe UI",system-ui,sans-serif',
-    'user-select:none', 'box-shadow:0 4px 18px rgba(0,0,0,.45)'
+    'user-select:none', 'box-shadow:' + SHADOW
   ].join(';');
 
   function row() {
@@ -361,7 +363,7 @@
   function setMinimized(m) {
     minimized = m;
     if (m) {
-      card.style.cssText = 'position:fixed;z-index:2147483647;box-sizing:border-box;width:26px;height:26px;background:' + C.bg + ';border:1px solid ' + C.border + ';border-radius:50%;box-shadow:0 4px 18px rgba(0,0,0,.45);user-select:none';
+      card.style.cssText = 'position:fixed;z-index:2147483647;box-sizing:border-box;width:26px;height:26px;background:' + C.bg + ';border:1px solid ' + C.border + ';border-radius:50%;box-shadow:' + SHADOW + ';user-select:none';
       head.style.cssText = 'display:flex;align-items:center;justify-content:center;height:24px';
       body.style.display = 'none';
       title.style.display = 'none';
