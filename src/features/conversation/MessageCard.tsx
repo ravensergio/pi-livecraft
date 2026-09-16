@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, type ReactNode } from 'react'
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { isObject } from '../../../shared/is-object.ts'
 import { CopyButton } from './CopyButton.tsx'
@@ -224,6 +224,7 @@ function ReasoningBlock(
   // already streaming when they appear (a reload must not re-open the past).
   const [open, setOpen] = useState((mode === 'auto' || mode === 'expanded') && live)
   const [touched, setTouched] = useState(false)
+  const teaser = useTypewriterText(children)
 
   // Mode switches apply to past blocks only for hidden/auto (cheap: closing or
   // following the stream). "Expanded" never re-opens history — it only affects
@@ -248,7 +249,7 @@ function ReasoningBlock(
           <path d='m5.5 3.5 5 4.5-5 4.5' />
         </svg>
         <span className='reasoning-label'>Thinking</span>
-        {!open && <span className='reasoning-teaser'>{reasoningTeaser(children)}</span>}
+        {!open && <span className='reasoning-teaser'>{teaser}</span>}
       </button>
       {open && (
         <div className='reasoning'>
@@ -259,12 +260,12 @@ function ReasoningBlock(
   )
 }
 
-// One visual line in the 762px conversation column at 13px (~95 chars).
+// Sized to fit two visual lines in the 762px conversation column at 14px.
 // The teaser always shows the END of the thinking, clipped at a word boundary.
-const TEASER_MAX_CHARS = 95
+const TEASER_MAX_CHARS = 190
 
-/** Single-line tail teaser for collapsed thinking: last ~95 characters, cut at the
- *  first word boundary so it never starts mid-word. CSS keeps it on one line. */
+/** Tail teaser for collapsed thinking: last ~190 characters, cut at the first word
+ *  boundary so it never starts mid-word. */
 function reasoningTeaser(text: string): string {
   const trimmed = text.trim()
   if (!trimmed) return ''
@@ -273,6 +274,29 @@ function reasoningTeaser(text: string): string {
   const space = slice.indexOf(' ')
   const tail = space > 0 ? slice.slice(space + 1) : slice
   return `…${tail.trim()}`
+}
+
+/** Typewriter reveal: returns the text a few characters at a time so streaming
+ *  thinking appears as typing instead of chunk swaps. History mounts fully shown. */
+function useTypewriterText(text: string): string {
+  const revealedRef = useRef(text.length)
+  const [shown, setShown] = useState(() => reasoningTeaser(text))
+  useEffect(() => {
+    if (text.length <= revealedRef.current) {
+      revealedRef.current = text.length
+      setShown(reasoningTeaser(text))
+      return
+    }
+    const timer = setInterval(() => {
+      revealedRef.current += 2
+      // Fast-forward when the backlog grows too large (fast streams).
+      if (text.length - revealedRef.current > 240) revealedRef.current = text.length
+      if (revealedRef.current >= text.length) clearInterval(timer)
+      setShown(reasoningTeaser(text.slice(0, revealedRef.current)))
+    }, 50)
+    return () => clearInterval(timer)
+  }, [text])
+  return shown
 }
 
 function isImageContent(value: unknown): value is JsonObject & { data: string; mimeType: string } {
