@@ -220,7 +220,9 @@ function ReasoningBlock(
     onError?: (cause: unknown) => void
   },
 ) {
-  const [open, setOpen] = useState(mode === 'expanded' || (mode === 'auto' && live))
+  // History blocks always mount closed; "expanded" only opens blocks that are
+  // already streaming when they appear (a reload must not re-open the past).
+  const [open, setOpen] = useState((mode === 'auto' || mode === 'expanded') && live)
   const [touched, setTouched] = useState(false)
 
   // Mode switches apply to past blocks only for hidden/auto (cheap: closing or
