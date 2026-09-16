@@ -589,6 +589,20 @@ export const Composer = memo(function Composer({
                 setHistoryIndex(null)
                 setDraftMessage('')
               }
+            } else if (text.includes('\n')) {
+              // Walking lines: land at the END of the adjacent line (predictable editing).
+              const up = event.key === 'ArrowUp'
+              const caret = el.selectionStart ?? 0
+              const currentLine = (text.slice(0, caret).match(/\n/g) ?? []).length
+              const totalLines = text.split('\n').length - 1
+              const target = up ? currentLine - 1 : currentLine + 1
+              if (target < 0 || target > totalLines) return
+              event.preventDefault()
+              let lineStart = 0
+              for (let i = 0; i < target; i += 1) lineStart = text.indexOf('\n', lineStart) + 1
+              const lineEnd = text.indexOf('\n', lineStart)
+              const at = lineEnd === -1 ? text.length : lineEnd
+              el.setSelectionRange(at, at)
             }
           }
           if (event.key === 'Enter' && !event.shiftKey) {
