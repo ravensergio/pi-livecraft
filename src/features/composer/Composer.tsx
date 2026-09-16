@@ -236,12 +236,11 @@ export const Composer = memo(function Composer({
     }
   }, [])
 
-  // History recall replaces the whole draft — caret goes to the top line so
-  // further Up presses keep walking into older history.
+  // History recall replaces the whole draft — caret at the end, ready to edit or send.
   useLayoutEffect(() => {
     if (historyIndex === null) return
     const textarea = textareaRef.current
-    if (textarea) textarea.setSelectionRange(0, 0)
+    if (textarea) textarea.setSelectionRange(textarea.value.length, textarea.value.length)
   }, [historyIndex])
 
   /** Persists the draft to storage, tolerating unavailable storage (private browsing). */
