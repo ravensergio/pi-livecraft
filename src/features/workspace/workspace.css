@@ -752,10 +752,6 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-.session-delete-path strong {
-  color: var(--ink);
-  font-weight: 600;
-}
 .modal .modal-actions button.primary.danger {
   background: var(--danger);
   border-color: var(--danger);

@@ -81,23 +81,15 @@ export function SessionDeleteDialog(
       >
         <h2 id='session-delete-title'>Delete session</h2>
         <p>
-          This permanently removes the session file for <strong>{name}</strong>
-          {cwd && (
+          This permanently removes the session file for <strong>{name}</strong> {cwd && (
             <>
               in <code>{cwd}</code>
+              {' '}
             </>
           )}
           . It cannot be recovered.
         </p>
-        {sessionPath && (() => {
-          const cut = sessionPath.lastIndexOf('\\')
-          return (
-            <p className='session-delete-path'>
-              {cut > 0 ? <span>{sessionPath.slice(0, cut + 1)}</span> : null}
-              <strong>{cut > 0 ? sessionPath.slice(cut + 1) : sessionPath}</strong>
-            </p>
-          )
-        })()}
+        {sessionPath && <p className='session-delete-path'>{sessionPath}</p>}
         {error && (
           <p className='session-rename-error' id='session-delete-error' role='alert'>{error}</p>
         )}
