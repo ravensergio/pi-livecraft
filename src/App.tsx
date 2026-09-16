@@ -52,7 +52,11 @@ import {
 import { RightSidebar } from './features/right-sidebar/RightSidebar.tsx'
 import { quotaProviderForModel } from './features/quotas/quota-display.ts'
 import { DirectoryPicker } from './features/workspace/DirectoryPicker.tsx'
-import { sidebarSessions, type PinnedSession } from './features/workspace/sidebar-sessions.ts'
+import {
+  sidebarSessions,
+  type PinnedSession,
+  type SessionActionTarget,
+} from './features/workspace/sidebar-sessions.ts'
 import { useWorkspaceSessions } from './features/workspace/useWorkspaceSessions.ts'
 import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
 import {
@@ -908,6 +912,17 @@ function App() {
     )
     return saved
   }, [selectedSession?.cwd, showToast, workspacePath])
+  /** Deletes a stored session and confirms the outcome with a toast. */
+  const handleDeleteSession = useCallback(async (target: SessionActionTarget): Promise<void> => {
+    try {
+      await deleteManagedSession(target)
+      showToast('notice', `Session “${target.name}” deleted.`)
+    } catch (cause) {
+      // The dialog keeps its inline error; the toast makes the failure visible too.
+      showToast('error', messageOf(cause))
+    }
+  }, [deleteManagedSession, messageOf, showToast])
+
   const handleComposerSelectOpened = useCallback(() => setRequestedSelect(null), [])
   /** User message history for terminal-style ArrowUp recall in the composer. */
   const messageHistory = useMemo(() => {
@@ -1224,7 +1239,7 @@ function App() {
         onSelectSession={setSelectedId}
         onError={(cause) => showToast('error', messageOf(cause))}
         onOpenSettings={() => setSettingsOpen(true)}
-        onDeleteSession={deleteManagedSession}
+        onDeleteSession={handleDeleteSession}
         onRenameSession={renameManagedSession}
         onTogglePinnedSession={togglePinnedSession}
         onResize={updateWorkspaceSidebarWidth}
