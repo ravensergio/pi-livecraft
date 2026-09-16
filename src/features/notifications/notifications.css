@@ -40,6 +40,10 @@
   pointer-events: auto;
   animation: toast-in 160ms ease-out;
 }
+.toast.notice {
+  border-color: color-mix(in srgb, var(--success) 55%, transparent);
+  background: var(--success-soft);
+}
 .toast.error {
   border-color: var(--danger);
   background: var(--danger-soft);
