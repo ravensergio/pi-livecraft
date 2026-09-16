@@ -137,7 +137,6 @@ export const Composer = memo(function Composer({
   const [openSelect, setOpenSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
   /** Terminal-style history browsing: index into messageHistory, or null when not browsing. */
   const [historyIndex, setHistoryIndex] = useState<number | null>(null)
-  const savedDraftRef = useRef('')
   const formRef = useRef<HTMLFormElement>(null)
   const promptSaveDialogRef = useRef<HTMLDialogElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -569,7 +568,6 @@ export const Composer = memo(function Composer({
             if (event.key === 'ArrowUp') {
               event.preventDefault()
               if (historyIndex === null) {
-                savedDraftRef.current = text
                 setHistoryIndex(messageHistory.length - 1)
                 setDraftMessage(messageHistory[messageHistory.length - 1] ?? '')
               } else if (historyIndex > 0) {
@@ -582,8 +580,9 @@ export const Composer = memo(function Composer({
                 setHistoryIndex(historyIndex + 1)
                 setDraftMessage(messageHistory[historyIndex + 1] ?? '')
               } else {
+                // Past the newest entry → empty composer.
                 setHistoryIndex(null)
-                setDraftMessage(savedDraftRef.current)
+                setDraftMessage('')
               }
             }
           }
