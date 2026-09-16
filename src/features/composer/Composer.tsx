@@ -554,6 +554,11 @@ export const Composer = memo(function Composer({
             }
             return
           }
+          // Escape exits history browsing and keeps the recalled text for editing.
+          if (event.key === 'Escape' && historyIndex !== null) {
+            setHistoryIndex(null)
+            return
+          }
           // Terminal-style recall: ArrowUp/Down on the first line walks message history.
           if (
             (event.key === 'ArrowUp' || event.key === 'ArrowDown')
