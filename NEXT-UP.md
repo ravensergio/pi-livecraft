@@ -44,5 +44,5 @@ Goal: read the extension's INTENDED color from the ANSI SGR codes pi already emi
 - Commit + push to ravensergio/pi-livecraft
 
 ## Status
-NOT STARTED. Blocked only on user go-ahead. Everything else (chips, plumbing, CSS,
-thinking toggle relocation) is committed as of 70d97e9.
+DONE — commit 6973063. Parser verified with 6 test cases (truecolor + basic ANSI,
+neutral threshold). Keyword fallback kept for uncolored extensions.
