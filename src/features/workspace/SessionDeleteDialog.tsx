@@ -81,7 +81,8 @@ export function SessionDeleteDialog(
       >
         <h2 id='session-delete-title'>Delete session</h2>
         <p>
-          This permanently removes the session file for <strong>{name}</strong> {cwd && (
+          This permanently removes the session file for{' '}
+          <strong className='session-delete-name'>{name}</strong> {cwd && (
             <>
               in <code>{cwd}</code>
               {' '}

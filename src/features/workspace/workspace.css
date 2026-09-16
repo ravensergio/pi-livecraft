@@ -744,6 +744,9 @@
   font-size: 11px;
   line-height: 1.4;
 }
+.session-delete-name {
+  color: var(--accent-hover);
+}
 .session-delete-path {
   margin: 0 0 6px;
   color: var(--muted);

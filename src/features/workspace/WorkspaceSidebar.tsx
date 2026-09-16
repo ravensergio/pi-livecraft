@@ -521,7 +521,10 @@ export function WorkspaceSidebar({
           {contextMenuSessionPath && !contextMenu.target.sessionId && (
             <button
               className='danger'
-              onClick={() => setDeleteTarget(contextMenu.target)}
+              onClick={() => {
+                dismissContextMenu()
+                setDeleteTarget(contextMenu.target)
+              }}
               role='menuitem'
               type='button'
             >
