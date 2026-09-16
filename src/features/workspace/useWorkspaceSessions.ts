@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   closeSession as requestCloseSession,
+  deleteStoredSession,
   listDirectories,
   listRecentSessions,
   listSessions,
@@ -345,6 +346,22 @@ export function useWorkspaceSessions(
     await refreshSessions()
   }, [refreshSessions, workspacePath])
 
+  /** Permanently deletes a stored session file and removes it from every local list. */
+  const deleteManagedSession = useCallback(async (target: SessionActionTarget): Promise<void> => {
+    if (!target.sessionPath) throw new Error('Session path is unavailable')
+    const { cwd, sessionPath } = target
+    await deleteStoredSession(cwd, sessionPath)
+    const removedId = sessionsRef.current.find((session) => session.sessionPath === sessionPath)?.id
+    if (removedId) {
+      setSessions((current) => current.filter((session) => session.id !== removedId))
+      if (selectedIdRef.current === removedId) setSelectedId('')
+    }
+    setPinnedSessions((current) => current.filter((session) => session.sessionPath !== sessionPath))
+    setRecentSessions((current) => current.filter((session) => session.sessionPath !== sessionPath))
+    setSentSessions((current) => current.filter((session) => session.sessionPath !== sessionPath))
+    await refreshSessions()
+  }, [refreshSessions])
+
   /** Adds or replaces a pending UI request for a session. */
   const addPendingRequest = useCallback((sessionId: string, request: JsonObject): void => {
     setSessions((current) =>
@@ -399,6 +416,7 @@ export function useWorkspaceSessions(
   return {
     addPendingRequest,
     closeManagedSession,
+    deleteManagedSession,
     completedSessionIds,
     creatingSession,
     directoryPickerOpen,

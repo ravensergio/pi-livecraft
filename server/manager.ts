@@ -6,7 +6,7 @@
  * ManagerClient; never spawn Pi directly or bypass the supervised lifecycle.
  */
 import { randomUUID } from 'node:crypto'
-import { realpath, stat } from 'node:fs/promises'
+import { realpath, stat, unlink } from 'node:fs/promises'
 import { createServer, type Socket } from 'node:net'
 import { JsonLineDecoder, encodeJsonLine } from './jsonl.ts'
 import { PiProcess, terminateAllPiProcesses } from './pi-process.ts'
@@ -15,6 +15,7 @@ import {
   improvementDirectionInstruction,
   loadPromptImprovementSystemPrompt,
 } from './prompt-improvement.ts'
+import { loadPiSession } from './pi-session-store.ts'
 import { runIsolatedPrompt } from './run-isolated-prompt.ts'
 import { isObject } from '../shared/is-object.ts'
 import type {
@@ -144,6 +145,7 @@ async function handleRequest(socket: Socket, value: unknown): Promise<void> {
     else if (value.action === 'open') data = await openSession(value)
     else if (value.action === 'close') data = await closeSession(value)
     else if (value.action === 'rename') data = await renameSession(value)
+    else if (value.action === 'delete') data = await deleteStoredSession(value)
     else if (value.action === 'improve_prompt') data = await improvePrompt(value)
     else if (value.action === 'run_prompt') data = await runPrompt(value)
     else data = await sendCommand(value)
@@ -285,6 +287,36 @@ async function closeSession(request: ManagerRequest): Promise<{ closed: true }> 
     })
   }
   return { closed: true }
+}
+
+/** Deletes a persisted session file after verifying it belongs to the claimed workspace. */
+async function deleteStoredSession(request: ManagerRequest): Promise<{ deleted: true }> {
+  if (
+    typeof request.cwd !== 'string' || typeof request.sessionPath !== 'string'
+  ) throw new Error('Session cwd and path are required')
+  const cwd = await realpath(request.cwd)
+  if (!(await stat(cwd)).isDirectory()) throw new Error('Session cwd must be a directory')
+  // loadPiSession enforces: file lives inside the Pi session directory and parses as a session.
+  const session = await loadPiSession(request.sessionPath)
+  if (session.cwd !== cwd) throw new Error('Pi session does not belong to this working directory')
+
+  // Stop the managed process first so it cannot rewrite the file while we remove it.
+  const running = [...sessions.values()].find(({ summary }) =>
+    summary.sessionPath === session.sessionPath
+  )
+  if (running && running.summary.status !== 'exited') {
+    await running.pi.terminate()
+    running.summary.status = 'exited'
+    broadcast({
+      kind: 'event',
+      event: 'session_exited',
+      sessionId: running.summary.id,
+      data: { reason: 'closed' },
+    })
+  }
+
+  await unlink(session.sessionPath)
+  return { deleted: true }
 }
 
 /** Renames a persisted session through a disposable public Pi RPC process. */

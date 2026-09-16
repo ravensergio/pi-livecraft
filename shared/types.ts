@@ -121,6 +121,7 @@ export interface ManagerRequest {
     | 'create'
     | 'open'
     | 'close'
+    | 'delete'
     | 'rename'
     | 'command'
     | 'improve_prompt'

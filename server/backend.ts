@@ -369,6 +369,24 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     return
   }
 
+  if (method === 'POST' && url.pathname === '/api/sessions/delete') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string' || typeof body.sessionPath !== 'string') {
+      throw new HttpError(400, 'Working directory and session path are required')
+    }
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    const session = await loadPiSession(body.sessionPath)
+    if (session.cwd !== cwd)
+      throw new HttpError(400, 'Pi session does not belong to this working directory')
+    await manager.request({
+      action: 'delete',
+      cwd,
+      sessionPath: session.sessionPath,
+    })
+    sendJson(response, 200, { deleted: true })
+    return
+  }
+
   if (method === 'POST' && url.pathname === '/api/sessions') {
     const body = await readJsonBody(request)
     const cwd = await resolveWorkingDirectory(typeof body.cwd === 'string' ? body.cwd : '~/.pi')

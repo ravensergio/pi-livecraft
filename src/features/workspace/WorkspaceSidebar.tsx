@@ -19,6 +19,7 @@ import {
   type PinnedSession,
   type SessionActionTarget,
 } from './sidebar-sessions.ts'
+import { SessionDeleteDialog } from './SessionDeleteDialog.tsx'
 import { SessionRenameDialog } from './SessionRenameDialog.tsx'
 import { maxWorkspaceSidebarWidth, minWorkspaceSidebarWidth } from './workspace-sidebar.ts'
 
@@ -48,6 +49,7 @@ interface WorkspaceSidebarProps {
   onSelectOtherWorkspaceSession: (session: SessionSummary) => void
   onSelectSession: (sessionId: string) => void
   onOpenSettings: () => void
+  onDeleteSession: (target: SessionActionTarget) => Promise<void>
   onRenameSession: (target: SessionActionTarget, name: string) => Promise<void>
   onTogglePinnedSession: (target: SessionActionTarget) => void
   onResize: (width: number) => void
@@ -76,6 +78,7 @@ export function WorkspaceSidebar({
   onSelectOtherWorkspaceSession,
   onSelectSession,
   onOpenSettings,
+  onDeleteSession,
   onRenameSession,
   onTogglePinnedSession,
   onResize,
@@ -86,6 +89,7 @@ export function WorkspaceSidebar({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [contextMenuPosition, setContextMenuPosition] = useState({ left: 0, top: 0 })
   const [renameTarget, setRenameTarget] = useState<SessionActionTarget | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<SessionActionTarget | null>(null)
   const selectedSessionRef = useRef<HTMLButtonElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const contextMenuTriggerRef = useRef<HTMLButtonElement>(null)
@@ -513,6 +517,17 @@ export function WorkspaceSidebar({
               Close session
             </button>
           )}
+          {/* Delete is only offered for closed (history-only) sessions. */}
+          {contextMenuSessionPath && !contextMenu.target.sessionId && (
+            <button
+              className='danger'
+              onClick={() => setDeleteTarget(contextMenu.target)}
+              role='menuitem'
+              type='button'
+            >
+              Delete…
+            </button>
+          )}
         </div>
       )}
       {renameTarget && (
@@ -521,6 +536,16 @@ export function WorkspaceSidebar({
           key={renameTarget.sessionPath ?? renameTarget.sessionId ?? renameTarget.name}
           onClose={dismissRename}
           onConfirm={(name) => onRenameSession(renameTarget, name)}
+        />
+      )}
+      {deleteTarget && (
+        <SessionDeleteDialog
+          cwd={deleteTarget.cwd}
+          key={deleteTarget.sessionPath ?? deleteTarget.name}
+          name={deleteTarget.name}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => onDeleteSession(deleteTarget)}
+          sessionPath={deleteTarget.sessionPath}
         />
       )}
     </aside>

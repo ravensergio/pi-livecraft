@@ -221,6 +221,14 @@ export async function renameSession(
   })
 }
 
+/** Permanently deletes a stored session file (and stops its process if running). */
+export async function deleteStoredSession(cwd: string, sessionPath: string): Promise<void> {
+  await request<void>('/api/sessions/delete', {
+    method: 'POST',
+    body: JSON.stringify({ cwd, sessionPath }),
+  })
+}
+
 export async function getSnapshot(sessionId: string): Promise<SessionSnapshot> {
   return request<SessionSnapshot>(`/api/sessions/${encodeURIComponent(sessionId)}/snapshot`)
 }

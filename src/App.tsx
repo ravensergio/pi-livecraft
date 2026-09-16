@@ -343,6 +343,7 @@ function App() {
   const {
     addPendingRequest,
     closeManagedSession,
+    deleteManagedSession,
     completedSessionIds,
     creatingSession,
     directoryPickerOpen,
@@ -1223,6 +1224,7 @@ function App() {
         onSelectSession={setSelectedId}
         onError={(cause) => showToast('error', messageOf(cause))}
         onOpenSettings={() => setSettingsOpen(true)}
+        onDeleteSession={deleteManagedSession}
         onRenameSession={renameManagedSession}
         onTogglePinnedSession={togglePinnedSession}
         onResize={updateWorkspaceSidebarWidth}
