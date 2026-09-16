@@ -312,8 +312,11 @@
   //    Mobile, AdguardForAndroid #5736), no CORS needed (same-origin).
   //  - 127.0.0.1:5173 (local Studio): cross-origin straight to the widget;
   //    needs cors_origin "*" in config.json. No preflight (plain GET).
-  const DATA_URL = location.hostname === '127.0.0.1'
-    ? 'http://localhost:8787/cost.json'
+  // LAN origins talk straight to the widget (needs cors_origin "*"); the
+  // Studio domain uses same-origin /cost.json proxied by NPM.
+  const WIDGET_HOST = { '127.0.0.1': 'localhost', '192.168.0.9': '192.168.0.9' }[location.hostname]
+  const DATA_URL = WIDGET_HOST
+    ? `http://${WIDGET_HOST}:8787/cost.json`
     : location.origin + '/cost.json';
   function poll() {
     window.fetch(DATA_URL, { cache: 'no-store' })

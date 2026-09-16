@@ -8,6 +8,23 @@
     // other browsers and irrelevant in production builds.
     if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.isDisabled === true)
       delete window.__REACT_DEVTOOLS_GLOBAL_HOOK__
+
+    // crypto.randomUUID only exists in secure contexts (HTTPS or localhost).
+    // Over plain-HTTP LAN/VPN addresses (http://192.168.x.y) it is undefined,
+    // which crashed message sending — provide a spec-shaped v4 fallback.
+    if (!crypto.randomUUID) {
+      crypto.randomUUID = function() {
+        const bytes = crypto.getRandomValues(new Uint8Array(16))
+        bytes[6] = (bytes[6] & 0x0f) | 0x40
+        bytes[8] = (bytes[8] & 0x3f) | 0x80
+        const hex = Array
+          .from(bytes, (b) => b.toString(16).padStart(2, '0'))
+          .join('')
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${
+          hex.slice(16, 20)
+        }-${hex.slice(20)}`
+      }
+    }
     </script>
     <script>
     !function() {
