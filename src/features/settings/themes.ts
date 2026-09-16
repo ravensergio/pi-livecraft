@@ -459,6 +459,30 @@ export function setActiveTheme(prefs: ThemePreferences, id: string): ThemePrefer
   return prefs
 }
 
+// ── Export / import (share themes across devices via a .theme.json file) ─
+
+/** Serializes a theme to portable JSON. */
+export function exportTheme(theme: Theme): string {
+  return JSON.stringify({ name: theme.name, mode: theme.mode, palette: theme.palette }, null, 2)
+}
+
+/** Imports a theme from exported JSON; returns updated prefs or null when invalid. */
+export function importTheme(prefs: ThemePreferences, raw: string): ThemePreferences | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null
+  const t = parsed as Record<string, unknown>
+  if (typeof t.name !== 'string' || !t.name.trim()) return null
+  if (t.mode !== 'light' && t.mode !== 'dark') return null
+  const palette = normalizePalette(t.palette)
+  if (!palette) return null
+  return createTheme(prefs, t.name, t.mode, palette)
+}
+
 // ── Runtime application ────────────────────────────────────────────
 
 /**

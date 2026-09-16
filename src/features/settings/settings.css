@@ -315,7 +315,7 @@
   color: var(--item-on-accent);
   font-weight: 700;
 }
-.theme-toolbar button, .theme-name button {
+.theme-toolbar button, .theme-name button, .theme-import-label {
   border: 1px solid var(--line-strong);
   border-radius: 7px;
   padding: 8px 10px;
@@ -324,9 +324,20 @@
   font-size: 12px;
   white-space: nowrap;
 }
-.theme-toolbar button:hover, .theme-name button:hover {
+.theme-toolbar button:hover,
+.theme-name button:hover,
+.theme-import-label:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+/* Import is a label wrapping a hidden file input — same look as the buttons. */
+.theme-import-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.theme-import-label input {
+  display: none;
 }
 .theme-toolbar button:focus-visible,
 .theme-name button:focus-visible,

@@ -52,6 +52,8 @@ interface SettingsPanelProps {
   onTerminalCommandChange: (value: string) => void
   onSelectTheme: (id: string) => void
   onDuplicateTheme: () => void
+  onExportTheme: () => void
+  onImportThemeFile: (file: File) => void
   onRenameTheme: (id: string, name: string) => void
   onUpdateThemeColor: (id: string, variable: ThemeVariable, color: string) => void
   onDeleteTheme: (id: string) => void
@@ -89,6 +91,8 @@ interface ThemeSettingsProps {
   onResetTheme: (id: string) => void
   onThemeNameChange: (name: string) => void
   onCommitThemeName: () => void
+  onExportTheme: () => void
+  onImportThemeFile: (file: File) => void
 }
 
 function ThemeSettings(
@@ -104,6 +108,8 @@ function ThemeSettings(
     onResetTheme,
     onThemeNameChange,
     onCommitThemeName,
+    onExportTheme,
+    onImportThemeFile,
   }: ThemeSettingsProps,
 ) {
   // Theme hovered in the dropdown, applied live to the app until the pointer leaves.
@@ -169,6 +175,29 @@ function ThemeSettings(
           </Select.Portal>
         </Select.Root>
         <button onClick={onDuplicateTheme} type='button'>New custom theme</button>
+        <button
+          disabled={!activeTheme}
+          onClick={onExportTheme}
+          title='Download the active theme as a .theme.json file to share with other devices'
+          type='button'
+        >
+          Export
+        </button>
+        <label
+          className='theme-import-label'
+          title='Import a .theme.json file from another device'
+        >
+          Import
+          <input
+            accept='.json,application/json'
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) onImportThemeFile(file)
+              event.target.value = ''
+            }}
+            type='file'
+          />
+        </label>
       </div>
       {activeTheme && (
         <>
@@ -330,6 +359,8 @@ export function SettingsPanel({
   onTerminalCommandChange,
   onSelectTheme,
   onDuplicateTheme,
+  onExportTheme,
+  onImportThemeFile,
   onRenameTheme,
   onUpdateThemeColor,
   onDeleteTheme,
@@ -392,6 +423,8 @@ export function SettingsPanel({
                 onCommitThemeName={commitThemeName}
                 onDeleteTheme={onDeleteTheme}
                 onDuplicateTheme={onDuplicateTheme}
+                onExportTheme={onExportTheme}
+                onImportThemeFile={onImportThemeFile}
                 onSelectTheme={onSelectTheme}
                 onThemeNameChange={setThemeName}
                 onResetTheme={onResetTheme}

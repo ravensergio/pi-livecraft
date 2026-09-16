@@ -82,6 +82,14 @@ Beside the existing dev pair:
 - Remember: the password gates an agent that runs bash as this PC's user —
   same exposure class as the existing Studio setup, no worse.
 
+### 6. Server-side theme sync (follow-up, after auth exists)
+Custom themes currently live in per-device localStorage; export/import
+(.theme.json) works but every small edit needs a round-trip.
+- Store user themes + active id in the backend (single JSON file next to
+  session data), served via `/api/themes` (GET/PUT, auth-protected).
+- Frontend: load remote themes on start, write-through on edit; keep
+  localStorage as offline fallback. Export/import stays as manual escape hatch.
+
 ## Out of scope (for now)
 - Per-user accounts / audit log
 - Tailscale/VPN

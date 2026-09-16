@@ -77,6 +77,8 @@ import {
   deleteTheme,
   duplicateTheme,
   persistThemePreferences,
+  exportTheme,
+  importTheme,
   readThemePreferences,
   renameTheme,
   resetTheme,
@@ -467,6 +469,25 @@ function App() {
       const duplicated = duplicateTheme(current, source.id, `${source.name} custom`)
       const created = duplicated.themes.at(-1)
       return created ? setActiveTheme(duplicated, created.id) : duplicated
+    })
+  }, [])
+
+  /** Downloads the active theme as a portable .theme.json file. */
+  const exportActiveTheme = useCallback(() => {
+    const theme = resolveActiveTheme(themePreferences)
+    const blob = new Blob([exportTheme(theme)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${theme.name.toLowerCase().replace(/[^\w-]+/g, '-')}.theme.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }, [themePreferences])
+
+  /** Imports a .theme.json file as a new user theme (invalid files are ignored). */
+  const importThemeFile = useCallback((file: File) => {
+    void file.text().then((raw) => {
+      setThemePreferences((current) => importTheme(current, raw) ?? current)
     })
   }, [])
 
@@ -1456,6 +1477,8 @@ function App() {
           }}
           onSelectTheme={selectTheme}
           onDuplicateTheme={duplicateActiveTheme}
+          onExportTheme={exportActiveTheme}
+          onImportThemeFile={importThemeFile}
           onRenameTheme={renameSelectedTheme}
           onUpdateThemeColor={updateSelectedThemeColor}
           onDeleteTheme={deleteSelectedTheme}
