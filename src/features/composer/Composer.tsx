@@ -72,6 +72,7 @@ export const Composer = memo(function Composer({
   reasoningMode = 'auto',
   onReasoningModeChange,
   extensionStatuses = [],
+  messageHistory = [],
 }: {
   session: SessionSummary
   snapshot: SessionSnapshot
@@ -113,6 +114,7 @@ export const Composer = memo(function Composer({
   reasoningMode?: ReasoningMode
   onReasoningModeChange?: () => void
   extensionStatuses?: Array<{ text: string; tone: StatusTone }>
+  messageHistory?: string[]
 }) {
   const draftStorageKey = `pi-livecraft.composer-draft.${session.id}`
   const [message, setMessage] = useState(() => readComposerDraft(draftStorageKey))
@@ -133,6 +135,9 @@ export const Composer = memo(function Composer({
     { original: string; improved: string; cost?: number }
   >()
   const [openSelect, setOpenSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
+  /** Terminal-style history browsing: index into messageHistory, or null when not browsing. */
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null)
+  const savedDraftRef = useRef('')
   const formRef = useRef<HTMLFormElement>(null)
   const promptSaveDialogRef = useRef<HTMLDialogElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -231,6 +236,13 @@ export const Composer = memo(function Composer({
       textarea.setSelectionRange(textarea.value.length, textarea.value.length)
     }
   }, [])
+
+  // History recall replaces the whole draft — keep the caret at the end.
+  useLayoutEffect(() => {
+    if (historyIndex === null) return
+    const textarea = textareaRef.current
+    if (textarea) textarea.setSelectionRange(textarea.value.length, textarea.value.length)
+  }, [historyIndex])
 
   /** Persists the draft to storage, tolerating unavailable storage (private browsing). */
   const persistDraft = useCallback((text: string): void => {
@@ -507,6 +519,7 @@ export const Composer = memo(function Composer({
         ref={textareaRef}
         value={message}
         onChange={(event) => {
+          if (historyIndex !== null) setHistoryIndex(null)
           const next = event.target.value
           setDraftMessage(next)
           if (next.startsWith('/') && allCommands.length > 0) {
@@ -541,6 +554,38 @@ export const Composer = memo(function Composer({
               return
             }
             return
+          }
+          // Terminal-style recall: ArrowUp/Down on the first line walks message history.
+          if (
+            (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+            && !event.ctrlKey && !event.altKey && !event.metaKey
+            && messageHistory.length > 0
+          ) {
+            const el = event.currentTarget
+            const text = el.value
+            const caret = el.selectionStart ?? 0
+            const firstLineEnd = text.indexOf('\n')
+            if (caret > (firstLineEnd === -1 ? text.length : firstLineEnd)) return
+            if (event.key === 'ArrowUp') {
+              event.preventDefault()
+              if (historyIndex === null) {
+                savedDraftRef.current = text
+                setHistoryIndex(messageHistory.length - 1)
+                setDraftMessage(messageHistory[messageHistory.length - 1] ?? '')
+              } else if (historyIndex > 0) {
+                setHistoryIndex(historyIndex - 1)
+                setDraftMessage(messageHistory[historyIndex - 1] ?? '')
+              }
+            } else if (historyIndex !== null) {
+              event.preventDefault()
+              if (historyIndex < messageHistory.length - 1) {
+                setHistoryIndex(historyIndex + 1)
+                setDraftMessage(messageHistory[historyIndex + 1] ?? '')
+              } else {
+                setHistoryIndex(null)
+                setDraftMessage(savedDraftRef.current)
+              }
+            }
           }
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault()

@@ -132,7 +132,7 @@ export function TurnUsage(
   )
 }
 
-function visibleText(content: unknown): string {
+export function visibleText(content: unknown): string {
   if (typeof content === 'string') return content
   if (!Array.isArray(content)) return ''
   return content

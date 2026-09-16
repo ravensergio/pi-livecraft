@@ -34,7 +34,7 @@ import { toneFromAnsi, type StatusTone } from './features/composer/status-bar/st
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { sessionActivity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
-import type { ReasoningMode } from './features/conversation/MessageCard.tsx'
+import { visibleText, type ReasoningMode } from './features/conversation/MessageCard.tsx'
 import { useConversationRuntime } from './features/conversation/useConversationRuntime.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import {
@@ -904,6 +904,16 @@ function App() {
     return saved
   }, [selectedSession?.cwd, showToast, workspacePath])
   const handleComposerSelectOpened = useCallback(() => setRequestedSelect(null), [])
+  /** User message history for terminal-style ArrowUp recall in the composer. */
+  const messageHistory = useMemo(() => {
+    const texts: string[] = []
+    for (const entry of snapshot.messages) {
+      if (String(entry.role) !== 'user') continue
+      const text = visibleText(entry.content ?? entry.output).trim()
+      if (text) texts.push(text)
+    }
+    return texts
+  }, [snapshot.messages])
   const analysisAvailable = selectedSession !== undefined
     && snapshotSessionId === selectedSession.id
   const sessionAnalysis = useMemo(() =>
@@ -1337,6 +1347,7 @@ function App() {
                       reasoningMode={reasoningMode}
                       onReasoningModeChange={cycleReasoningMode}
                       extensionStatuses={Object.values(extensionStatuses[selectedSession.id] ?? {})}
+                      messageHistory={messageHistory}
                       onSend={handleComposerSend}
                       onAbort={handleComposerAbort}
                       onImprovePrompt={handlePromptImprovement}
