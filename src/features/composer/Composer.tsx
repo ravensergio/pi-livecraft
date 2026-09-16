@@ -70,6 +70,7 @@ export const Composer = memo(function Composer({
   onDraftApplied,
   reasoningMode = 'auto',
   onReasoningModeChange,
+  extensionStatuses = [],
 }: {
   session: SessionSummary
   snapshot: SessionSnapshot
@@ -108,6 +109,9 @@ export const Composer = memo(function Composer({
   focusRequest?: number
   draftRequest?: { id: string; message: string }
   onDraftApplied?: (id: string) => void
+  reasoningMode?: ReasoningMode
+  onReasoningModeChange?: () => void
+  extensionStatuses?: string[]
 }) {
   const draftStorageKey = `pi-livecraft.composer-draft.${session.id}`
   const [message, setMessage] = useState(() => readComposerDraft(draftStorageKey))
@@ -650,6 +654,21 @@ export const Composer = memo(function Composer({
                 value={improvePreset}
               />
             </Tooltip>
+            {onReasoningModeChange && (
+              <button
+                aria-label={`Thinking blocks: ${reasoningMode}. Click to change.`}
+                className='composer-select reasoning'
+                onClick={onReasoningModeChange}
+                title='Thinking blocks: auto (open while streaming) / expanded / collapsed'
+                type='button'
+              >
+                {reasoningMode === 'auto'
+                  ? 'thinking · auto'
+                  : reasoningMode === 'expanded'
+                  ? 'thinking · open'
+                  : 'thinking · hidden'}
+              </button>
+            )}
           </div>
           <div className='composer-primary-actions'>
             <span className='composer-stop-slot'>
@@ -699,8 +718,7 @@ export const Composer = memo(function Composer({
           contextTokens={contextTokens}
           contextPercent={contextPercent}
           contextPercentValue={contextPercentValue}
-          reasoningMode={reasoningMode}
-          onReasoningModeChange={onReasoningModeChange}
+          extensionStatuses={extensionStatuses}
         />
       </div>
       {promptSave && (

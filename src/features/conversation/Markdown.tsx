@@ -25,7 +25,8 @@ function remarkSingleLineBreaks() {
           if (part) children.push({ type: 'text', value: part })
         })
         parent.children.splice(index, 1, ...children)
-        return [index + children.length - 1, 'skip'] as const
+        // ActionTuple is [action, index] — action first.
+        return ['skip', index + children.length - 1] as const
       },
     )
   }

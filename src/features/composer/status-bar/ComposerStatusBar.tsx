@@ -1,8 +1,17 @@
 import { memo } from 'react'
 import type { SessionSummary } from '../../../../shared/types.ts'
-import type { ReasoningMode } from '../conversation/MessageCard.tsx'
 import { SessionInfo } from './SessionInfo.tsx'
 import { SessionStats } from './SessionStats.tsx'
+
+/** Maps an extension status text to a tone class (telegram-plus colors its states). */
+function extensionStatusTone(text: string): string {
+  if (/error|fail/i.test(text)) return 'ext-status-chip danger'
+  if (/awaiting|pending/i.test(text)) return 'ext-status-chip warning'
+  // Negatives first: "disconnected" contains "connected" as a substring.
+  if (/disconnect|not configured|offline/i.test(text)) return 'ext-status-chip'
+  if (/\b(connected|active|paired)/i.test(text)) return 'ext-status-chip success'
+  return 'ext-status-chip' // unknown → muted
+}
 
 /** Status bar shown below the composer: session name, directory, cost, and context usage. */
 export const ComposerStatusBar = memo(function ComposerStatusBar(
@@ -14,8 +23,7 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
     contextTokens,
     contextPercent,
     contextPercentValue,
-    reasoningMode = 'auto',
-    onReasoningModeChange,
+    extensionStatuses = [],
   }: {
     session: SessionSummary
     running: boolean
@@ -24,8 +32,7 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
     contextTokens: string
     contextPercent: string
     contextPercentValue: number | null
-    reasoningMode?: ReasoningMode
-    onReasoningModeChange?: () => void
+    extensionStatuses?: string[]
   },
 ) {
   return (
@@ -37,21 +44,11 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
           </div>
         )
         : <SessionInfo name={session.name} cwd={session.cwd} active={running} />}
-      {onReasoningModeChange && (
-        <button
-          aria-label={`Thinking blocks: ${reasoningMode}. Click to change.`}
-          className={`reasoning-mode ${reasoningMode}`}
-          onClick={onReasoningModeChange}
-          title='Thinking blocks: auto (open while streaming) / expanded / collapsed'
-          type='button'
-        >
-          {reasoningMode === 'auto'
-            ? 'thinking · auto'
-            : reasoningMode === 'expanded'
-            ? 'thinking · open'
-            : 'thinking · hidden'}
-        </button>
-      )}
+      {extensionStatuses.map((text, index) => (
+        <span className={extensionStatusTone(text)} key={`${index}-${text}`} title={text}>
+          {text}
+        </span>
+      ))}
       <SessionStats
         contextClass={contextClass}
         contextTokens={contextTokens}

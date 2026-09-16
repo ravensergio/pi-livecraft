@@ -185,6 +185,10 @@ function App() {
   )
 
   // Preferences and commands
+  /** Per-session extension status entries (pi-telegram-plus etc.) shown as chips. */
+  const [extensionStatuses, setExtensionStatuses] = useState<
+    Record<string, Record<string, string>>
+  >({})
   const [themePreferences, setThemePreferences] = useState(() => readThemePreferences())
   const activeTheme = useMemo(() => resolveActiveTheme(themePreferences), [themePreferences])
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
@@ -676,6 +680,22 @@ function App() {
         && event.statusKey === 'pi-livecraft.quotas'
       ) {
         void getQuotas().then(setQuotas).catch(() => undefined)
+      }
+      // Any other extension status key becomes a chip in the composer status bar.
+      if (event.type === 'extension_ui_request' && event.method === 'setStatus') {
+        const key = typeof event.statusKey === 'string' ? event.statusKey : ''
+        if (key && key !== 'agent' && key !== 'pi-livecraft.quotas') {
+          setExtensionStatuses((current) => {
+            const perSession = { ...(current[sessionId] ?? {}) }
+            // Extension status text is ANSI-themed for terminals — strip the codes.
+            const text = typeof event.statusText === 'string'
+              ? event.statusText.replace(/\u001b\[[0-9;]*m/g, '').trim()
+              : ''
+            if (text) perSession[key] = text
+            else delete perSession[key]
+            return { ...current, [sessionId]: perSession }
+          })
+        }
       }
       if (
         event.type === 'extension_ui_request' && isBlockingDialog(event) && !isAgentSelector(event)
@@ -1315,6 +1335,7 @@ function App() {
                       compacting={displayedActivity?.kind === 'compacting'}
                       reasoningMode={reasoningMode}
                       onReasoningModeChange={cycleReasoningMode}
+                      extensionStatuses={Object.values(extensionStatuses[selectedSession.id] ?? {})}
                       onSend={handleComposerSend}
                       onAbort={handleComposerAbort}
                       onImprovePrompt={handlePromptImprovement}
