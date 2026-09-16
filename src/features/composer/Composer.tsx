@@ -236,11 +236,12 @@ export const Composer = memo(function Composer({
     }
   }, [])
 
-  // History recall replaces the whole draft — keep the caret at the end.
+  // History recall replaces the whole draft — caret goes to the top line so
+  // further Up presses keep walking into older history.
   useLayoutEffect(() => {
     if (historyIndex === null) return
     const textarea = textareaRef.current
-    if (textarea) textarea.setSelectionRange(textarea.value.length, textarea.value.length)
+    if (textarea) textarea.setSelectionRange(0, 0)
   }, [historyIndex])
 
   /** Persists the draft to storage, tolerating unavailable storage (private browsing). */
@@ -554,12 +555,8 @@ export const Composer = memo(function Composer({
             }
             return
           }
-          // Escape exits history browsing and keeps the recalled text for editing.
-          if (event.key === 'Escape' && historyIndex !== null) {
-            setHistoryIndex(null)
-            return
-          }
-          // Terminal-style recall: ArrowUp/Down on the first line walks message history.
+          // Messenger-style recall: Up on the top line / Down on the bottom line
+          // walks message history; arrows between lines move the caret normally.
           if (
             (event.key === 'ArrowUp' || event.key === 'ArrowDown')
             && !event.ctrlKey && !event.altKey && !event.metaKey
@@ -569,24 +566,25 @@ export const Composer = memo(function Composer({
             const text = el.value
             const caret = el.selectionStart ?? 0
             const firstLineEnd = text.indexOf('\n')
-            const onFirstLine = caret <= (firstLineEnd === -1 ? text.length : firstLineEnd)
-            // First-line restriction only gates STARTING a browse — while browsing,
-            // arrows always navigate (recall leaves the caret at the end of multi-line entries).
-            if (!onFirstLine && historyIndex === null) return
-            if (event.key === 'ArrowUp') {
+            const onTopLine = caret <= (firstLineEnd === -1 ? text.length : firstLineEnd)
+            const onBottomLine = caret >= text.lastIndexOf('\n') + 1
+            if (event.key === 'ArrowUp' && (text === '' || onTopLine)) {
               event.preventDefault()
-              if (historyIndex === null) {
-                setHistoryIndex(messageHistory.length - 1)
-                setDraftMessage(messageHistory[messageHistory.length - 1] ?? '')
-              } else if (historyIndex > 0) {
-                setHistoryIndex(historyIndex - 1)
-                setDraftMessage(messageHistory[historyIndex - 1] ?? '')
-              }
-            } else if (historyIndex !== null) {
+              const nextIndex = historyIndex === null
+                ? messageHistory.length - 1
+                : Math.max(historyIndex - 1, 0)
+              setHistoryIndex(nextIndex)
+              setDraftMessage(messageHistory[nextIndex] ?? '')
+            } else if (
+              event.key === 'ArrowDown'
+              && historyIndex !== null
+              && (text === '' || onBottomLine)
+            ) {
               event.preventDefault()
               if (historyIndex < messageHistory.length - 1) {
-                setHistoryIndex(historyIndex + 1)
-                setDraftMessage(messageHistory[historyIndex + 1] ?? '')
+                const nextIndex = historyIndex + 1
+                setHistoryIndex(nextIndex)
+                setDraftMessage(messageHistory[nextIndex] ?? '')
               } else {
                 // Past the newest entry → empty composer.
                 setHistoryIndex(null)
