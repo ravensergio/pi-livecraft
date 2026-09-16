@@ -33,6 +33,7 @@ import { PromptSelect } from './selects/PromptSelect.tsx'
 import { ThinkingSelect } from './selects/ThinkingSelect.tsx'
 import { ComposerSelect } from './selects/ComposerSelect.tsx'
 import { ComposerStatusBar } from './status-bar/ComposerStatusBar.tsx'
+import type { StatusTone } from './status-bar/status-tone.ts'
 
 /** Static options for the Improve-prompt dropdown; hoisted to a module constant so the select never re-renders for it. */
 const improveOptions = [
@@ -111,7 +112,7 @@ export const Composer = memo(function Composer({
   onDraftApplied?: (id: string) => void
   reasoningMode?: ReasoningMode
   onReasoningModeChange?: () => void
-  extensionStatuses?: string[]
+  extensionStatuses?: Array<{ text: string; tone: StatusTone }>
 }) {
   const draftStorageKey = `pi-livecraft.composer-draft.${session.id}`
   const [message, setMessage] = useState(() => readComposerDraft(draftStorageKey))

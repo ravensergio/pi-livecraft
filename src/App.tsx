@@ -30,6 +30,7 @@ import type {
 } from '../shared/types.ts'
 import { isObject } from '../shared/is-object.ts'
 import { Composer } from './features/composer/Composer.tsx'
+import { toneFromAnsi, type StatusTone } from './features/composer/status-bar/status-tone.ts'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { sessionActivity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
@@ -187,7 +188,7 @@ function App() {
   // Preferences and commands
   /** Per-session extension status entries (pi-telegram-plus etc.) shown as chips. */
   const [extensionStatuses, setExtensionStatuses] = useState<
-    Record<string, Record<string, string>>
+    Record<string, Record<string, { text: string; tone: StatusTone }>>
   >({})
   const [themePreferences, setThemePreferences] = useState(() => readThemePreferences())
   const activeTheme = useMemo(() => resolveActiveTheme(themePreferences), [themePreferences])
@@ -687,11 +688,11 @@ function App() {
         if (key && key !== 'agent' && key !== 'pi-livecraft.quotas') {
           setExtensionStatuses((current) => {
             const perSession = { ...(current[sessionId] ?? {}) }
-            // Extension status text is ANSI-themed for terminals — strip the codes.
-            const text = typeof event.statusText === 'string'
-              ? event.statusText.replace(/\u001b\[[0-9;]*m/g, '').trim()
-              : ''
-            if (text) perSession[key] = text
+            // Extension status text is ANSI-themed for terminals — keep the color intent,
+            // strip the codes from the displayed text.
+            const raw = typeof event.statusText === 'string' ? event.statusText : ''
+            const text = raw.replace(/\u001b\[[0-9;]*m/g, '').trim()
+            if (text) perSession[key] = { text, tone: toneFromAnsi(raw) }
             else delete perSession[key]
             return { ...current, [sessionId]: perSession }
           })

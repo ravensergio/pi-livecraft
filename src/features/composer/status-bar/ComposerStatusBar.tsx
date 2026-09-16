@@ -2,6 +2,7 @@ import { memo } from 'react'
 import type { SessionSummary } from '../../../../shared/types.ts'
 import { SessionInfo } from './SessionInfo.tsx'
 import { SessionStats } from './SessionStats.tsx'
+import type { StatusTone } from './status-tone.ts'
 
 /** Maps an extension status text to a tone class (telegram-plus colors its states). */
 function extensionStatusTone(text: string): string {
@@ -32,7 +33,7 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
     contextTokens: string
     contextPercent: string
     contextPercentValue: number | null
-    extensionStatuses?: string[]
+    extensionStatuses?: Array<{ text: string; tone: StatusTone }>
   },
 ) {
   return (
@@ -44,8 +45,12 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
           </div>
         )
         : <SessionInfo name={session.name} cwd={session.cwd} active={running} />}
-      {extensionStatuses.map((text, index) => (
-        <span className={extensionStatusTone(text)} key={`${index}-${text}`} title={text}>
+      {extensionStatuses.map(({ text, tone }, index) => (
+        <span
+          className={tone ? `ext-status-chip ${tone}` : extensionStatusTone(text)}
+          key={`${index}-${text}`}
+          title={text}
+        >
           {text}
         </span>
       ))}
