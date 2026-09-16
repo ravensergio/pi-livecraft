@@ -745,14 +745,16 @@
   line-height: 1.4;
 }
 .session-delete-path {
-  max-width: 520px;
-  overflow: hidden;
   margin: 0 0 6px;
   color: var(--muted);
   font-family: ui-monospace, monospace;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.session-delete-path strong {
+  color: var(--ink);
+  font-weight: 600;
 }
 .modal .modal-actions button.primary.danger {
   background: var(--danger);

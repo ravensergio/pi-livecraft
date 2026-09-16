@@ -89,7 +89,15 @@ export function SessionDeleteDialog(
           )}
           . It cannot be recovered.
         </p>
-        {sessionPath && <p className='session-delete-path' title={sessionPath}>{sessionPath}</p>}
+        {sessionPath && (() => {
+          const cut = sessionPath.lastIndexOf('\\')
+          return (
+            <p className='session-delete-path'>
+              {cut > 0 ? <span>{sessionPath.slice(0, cut + 1)}</span> : null}
+              <strong>{cut > 0 ? sessionPath.slice(cut + 1) : sessionPath}</strong>
+            </p>
+          )
+        })()}
         {error && (
           <p className='session-rename-error' id='session-delete-error' role='alert'>{error}</p>
         )}
