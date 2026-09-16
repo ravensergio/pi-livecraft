@@ -259,9 +259,13 @@ function App() {
       const publish = () => {
         pendingManagerUnavailableToastsRef.current.delete(toast.id)
         setToasts((current) => [...current, toast])
+        // Read-time scaling: long errors get more time, capped so toasts never linger.
+        const baseMs = kind === 'error' ? 5000 : 3500
+        const perCharMs = kind === 'error' ? 25 : 20
+        const capMs = kind === 'error' ? 12000 : 8000
         window.setTimeout(
           () => startDismissal(toast.id),
-          kind === 'error' ? 5000 : 3000,
+          Math.min(capMs, baseMs + message.length * perCharMs),
         )
       }
       if (kind === 'error' && message === managerUnavailableMessage) {
