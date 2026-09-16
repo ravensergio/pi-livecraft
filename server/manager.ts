@@ -652,7 +652,8 @@ function respond(socket: Socket, response: ManagerResponse): void {
 function isManagerRequest(value: unknown): value is ManagerRequest {
   if (!isObject(value) || typeof value.id !== 'string') return false
   return value.action === 'list' || value.action === 'create' || value.action === 'open'
-    || value.action === 'close' || value.action === 'rename' || value.action === 'command'
+    || value.action === 'close' || value.action === 'delete' || value.action === 'rename'
+    || value.action === 'command'
     || value.action === 'improve_prompt' || value.action === 'run_prompt'
     || value.action === 'status' || value.action === 'restart'
 }
