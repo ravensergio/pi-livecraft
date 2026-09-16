@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
+import { memo, useEffect, useState, type ReactNode } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { isObject } from '../../../shared/is-object.ts'
 import { CopyButton } from './CopyButton.tsx'
@@ -276,27 +276,9 @@ function reasoningTeaser(text: string): string {
   return `…${tail.trim()}`
 }
 
-/** Typewriter reveal: returns the text a few characters at a time so streaming
- *  thinking appears as typing instead of chunk swaps. History mounts fully shown. */
+/** Typewriter disabled for testing — the teaser tracks the stream with no delay. */
 function useTypewriterText(text: string): string {
-  const revealedRef = useRef(text.length)
-  const [shown, setShown] = useState(() => reasoningTeaser(text))
-  useEffect(() => {
-    if (text.length <= revealedRef.current) {
-      revealedRef.current = text.length
-      setShown(reasoningTeaser(text))
-      return
-    }
-    const timer = setInterval(() => {
-      revealedRef.current += 2
-      // Fast-forward when the backlog grows too large (fast streams).
-      if (text.length - revealedRef.current > 240) revealedRef.current = text.length
-      if (revealedRef.current >= text.length) clearInterval(timer)
-      setShown(reasoningTeaser(text.slice(0, revealedRef.current)))
-    }, 50)
-    return () => clearInterval(timer)
-  }, [text])
-  return shown
+  return reasoningTeaser(text)
 }
 
 function isImageContent(value: unknown): value is JsonObject & { data: string; mimeType: string } {
