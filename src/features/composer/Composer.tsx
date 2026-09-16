@@ -564,7 +564,10 @@ export const Composer = memo(function Composer({
             const text = el.value
             const caret = el.selectionStart ?? 0
             const firstLineEnd = text.indexOf('\n')
-            if (caret > (firstLineEnd === -1 ? text.length : firstLineEnd)) return
+            const onFirstLine = caret <= (firstLineEnd === -1 ? text.length : firstLineEnd)
+            // First-line restriction only gates STARTING a browse — while browsing,
+            // arrows always navigate (recall leaves the caret at the end of multi-line entries).
+            if (!onFirstLine && historyIndex === null) return
             if (event.key === 'ArrowUp') {
               event.preventDefault()
               if (historyIndex === null) {
