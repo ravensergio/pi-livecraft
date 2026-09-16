@@ -101,8 +101,6 @@ export function SessionDeleteDialog(
           <button
             className='primary danger'
             disabled={deleting}
-            form='session-delete-form'
-            id='session-delete-confirm'
             type='submit'
           >
             {deleting ? 'Deleting…' : 'Delete'}
