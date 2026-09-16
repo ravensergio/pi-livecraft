@@ -259,28 +259,20 @@ function ReasoningBlock(
   )
 }
 
-// Sized to fit two visual lines in the 762px conversation column at 13px:
-// ~98 chars/line. The teaser must always show the END of the thinking.
-const TEASER_MAX_CHARS = 190
-const TEASER_MIN_TAIL_CHARS = 90
+// One visual line in the 762px conversation column at 13px (~95 chars).
+// The teaser always shows the END of the thinking, clipped at a word boundary.
+const TEASER_MAX_CHARS = 95
 
-/** Tail teaser for collapsed thinking: the last ~240 characters, snapped back to a
- *  clean break (newline or sentence end) when that still leaves a substantial tail. */
+/** Single-line tail teaser for collapsed thinking: last ~95 characters, cut at the
+ *  first word boundary so it never starts mid-word. CSS keeps it on one line. */
 function reasoningTeaser(text: string): string {
   const trimmed = text.trim()
   if (!trimmed) return ''
   if (trimmed.length <= TEASER_MAX_CHARS) return trimmed
   const slice = trimmed.slice(-TEASER_MAX_CHARS)
-  const newline = slice.lastIndexOf('\n')
-  const sentence = Math.max(
-    slice.lastIndexOf('. '),
-    slice.lastIndexOf('! '),
-    slice.lastIndexOf('? '),
-  )
-  const cut = Math.max(newline, sentence)
-  if (cut > TEASER_MAX_CHARS / 2 && slice.length - cut - 1 >= TEASER_MIN_TAIL_CHARS)
-    return `…${slice.slice(cut + 1).trim()}`
-  return `…${slice.trim()}`
+  const space = slice.indexOf(' ')
+  const tail = space > 0 ? slice.slice(space + 1) : slice
+  return `…${tail.trim()}`
 }
 
 function isImageContent(value: unknown): value is JsonObject & { data: string; mimeType: string } {
