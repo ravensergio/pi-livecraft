@@ -46,11 +46,17 @@ function extractUserText(message: JsonObject): string | null {
 }
 
 /** Returns a stable comparison key without reserializing the same message for every candidate. */
+const matchKeyCache = new WeakMap<JsonObject, string | null>()
 function messageMatchKey(message: JsonObject): string | null {
+  const cached = matchKeyCache.get(message)
+  if (cached !== undefined) return cached
   const userText = extractUserText(message)
-  if (userText !== null) return `user\u0000${userText}`
-  const assistantContent = assistantContentKey(message)
-  return assistantContent === null ? null : `assistant\u0000${assistantContent}`
+  const key = userText !== null ? `user\u0000${userText}` : (() => {
+    const assistantContent = assistantContentKey(message)
+    return assistantContent === null ? null : `assistant\u0000${assistantContent}`
+  })()
+  matchKeyCache.set(message, key)
+  return key
 }
 
 function assistantContentKey(message: JsonObject): string | null {
@@ -77,11 +83,16 @@ export function sameMessage(left: JsonObject, right: JsonObject): boolean {
     && sameIndexedMessage(left, right)
 }
 
+/** Streamed messages only ever land at the END of history, so matching older
+ *  entries is wasted work — this bounds the stringify cost on long sessions. */
+const MATCH_TAIL_WINDOW = 100
+
 /** Merges history and streamed messages while retaining each streamed message's React identity. */
 export function conversationMessageEntries(
   historyMessages: JsonObject[],
   liveMessages: LiveMessage[],
 ): ConversationMessageEntry[] {
+  const matchStartIndex = Math.max(0, historyMessages.length - MATCH_TAIL_WINDOW)
   const liveByKey = new Map<string, LiveMessage[]>()
   for (const live of liveMessages) {
     const key = messageMatchKey(live.message)
@@ -92,6 +103,13 @@ export function conversationMessageEntries(
   }
   const matchedLiveIds = new Set<string>()
   const historyEntries = historyMessages.map((message, historyIndex): ConversationMessageEntry => {
+    if (historyIndex < matchStartIndex)
+      return {
+        key: `history-${String(message.timestamp ?? '')}-${historyIndex}`,
+        message,
+        source: 'history',
+        historyIndex,
+      }
     const key = messageMatchKey(message)
     const candidates = key === null ? undefined : liveByKey.get(key)
     const candidateIndex = candidates
