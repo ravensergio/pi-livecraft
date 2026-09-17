@@ -418,6 +418,7 @@ export function Conversation(
               >
                 {isVisibleConversationMessage(message) && (
                   <MessageCard
+                    key='message'
                     live={false}
                     message={message}
                     onError={onError}
