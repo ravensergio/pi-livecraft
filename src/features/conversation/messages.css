@@ -232,11 +232,10 @@
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--line);
 }
-/* Accent pushed 27% toward ink: brighter mint in dark theme (where ink is
-   light), deeper teal in light — keeps bold readable on the accent-washed
-   reply bubble. */
+/* Secondary pushed 27% toward ink — distinct hue from the accent-washed
+   bubble, readable in both themes. */
 .message.assistant .content strong {
-  color: color-mix(in srgb, var(--accent) 73%, var(--ink));
+  color: color-mix(in srgb, var(--secondary) 73%, var(--ink));
 }
 .message.assistant .content ul ::marker,
 .message.assistant .content ol ::marker {
