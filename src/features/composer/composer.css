@@ -75,8 +75,8 @@
   background: transparent;
   color: var(--ink);
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 1.55;
+  font-size: var(--fs-composer);
+  line-height: var(--lh-composer);
 }
 .composer textarea::placeholder {
   color: var(--muted);
@@ -367,7 +367,9 @@
 }
 .composer-stats small {
   color: currentColor;
-  font: 12px ui-monospace, monospace;
+  font:
+    var(--fs-status) ui-monospace,
+    monospace;
 }
 .composer-stats progress {
   width: 48px;

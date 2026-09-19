@@ -75,6 +75,13 @@ import {
   type CommandId,
 } from './features/commands/command-registry.ts'
 import { SettingsPanel } from './features/settings/SettingsPanel.tsx'
+import {
+  applyTypography,
+  readTypography,
+  resetTypography,
+  writeTypography,
+  type TypographySettings,
+} from './features/settings/typography.ts'
 import { ManagerRuntimeNotice } from './features/manager/ManagerRuntimeNotice.tsx'
 import {
   allThemes,
@@ -216,6 +223,21 @@ function App() {
   >()
   const [shortcuts, setShortcuts] = useState(() => readShortcuts())
   const [terminalCommand, setTerminalCommand] = useState(() => readTerminalCommand())
+  const [typography, setTypography] = useState<TypographySettings>(() => readTypography())
+
+  // Applies typography overrides to :root (also restores them on load).
+  useEffect(() => {
+    applyTypography(typography)
+  }, [typography])
+  const handleTypographyChange = useCallback((next: TypographySettings): void => {
+    setTypography(next)
+    writeTypography(next)
+  }, [])
+  const handleResetTypography = useCallback((): void => {
+    setTypography({})
+    writeTypography({})
+    resetTypography()
+  }, [])
 
   // Workspace and session synchronization
   const selectedIdRef = useRef(window.localStorage.getItem('pi-livecraft.selected-session') ?? '')
@@ -1537,6 +1559,9 @@ function App() {
           onUpdateThemeColor={updateSelectedThemeColor}
           onDeleteTheme={deleteSelectedTheme}
           onResetTheme={resetSelectedTheme}
+          typography={typography}
+          onTypographyChange={handleTypographyChange}
+          onResetTypography={handleResetTypography}
           onReset={() => {
             setShortcuts(defaultShortcuts)
             window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(defaultShortcuts))

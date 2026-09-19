@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react'
 import * as Select from '@radix-ui/react-select'
+import { typographyFields, type TypographySettings } from './typography.ts'
 import type { CommandDefinition, CommandId } from '../commands/command-registry.ts'
 import { shortcutFromEvent, shortcutConflicts } from '../commands/command-registry.ts'
 import {
@@ -25,7 +26,7 @@ const themeVariableLabels: Record<ThemeVariable, string> = {
 // ── Tab registry ───────────────────────────────────────────────────
 
 /** Identifies a settings tab. Extend this union when adding a new tab. */
-export type SettingsTabId = 'themes' | 'terminal' | 'shortcuts'
+export type SettingsTabId = 'themes' | 'typography' | 'terminal' | 'shortcuts'
 
 /** Describes one tab in the settings modal. */
 export interface SettingsTabDefinition {
@@ -36,6 +37,7 @@ export interface SettingsTabDefinition {
 /** Ordered list of tabs rendered in the settings modal. */
 export const settingsTabs: SettingsTabDefinition[] = [
   { id: 'themes', label: 'Color themes' },
+  { id: 'typography', label: 'Fonts' },
   { id: 'terminal', label: 'Terminal' },
   { id: 'shortcuts', label: 'Shortcuts' },
 ]
@@ -58,6 +60,9 @@ interface SettingsPanelProps {
   onUpdateThemeColor: (id: string, variable: ThemeVariable, color: string) => void
   onDeleteTheme: (id: string) => void
   onResetTheme: (id: string) => void
+  typography: TypographySettings
+  onTypographyChange: (next: TypographySettings) => void
+  onResetTypography: () => void
   onReset: () => void
   onClose: () => void
 }
@@ -262,6 +267,86 @@ interface TerminalSettingsProps {
   onTerminalCommandChange: (value: string) => void
 }
 
+interface TypographySettingsProps {
+  typography: TypographySettings
+  onTypographyChange: (next: TypographySettings) => void
+  onResetTypography: () => void
+}
+
+/** Font size + line-height controls for the main text areas. */
+function TypographySettings(
+  { typography, onTypographyChange, onResetTypography }: TypographySettingsProps,
+) {
+  const update = (fieldId: string, patch: { size?: number; lineHeight?: number }) => {
+    const current = typography[fieldId] ?? {}
+    onTypographyChange({ ...typography, [fieldId]: { ...current, ...patch } })
+  }
+  return (
+    <section>
+      <div className='typography-rows'>
+        {typographyFields.map((field) => {
+          const entry = typography[field.id] ?? {}
+          const size = entry.size ?? field.defaultSize
+          const lineHeight = entry.lineHeight ?? field.defaultLineHeight
+          const isCustom = entry.size !== undefined || entry.lineHeight !== undefined
+          return (
+            <label className='typography-row' key={field.id}>
+              <span>{field.label}</span>
+              <input
+                aria-label={`${field.label} font size (px)`}
+                max={String(field.maxSize)}
+                min={String(field.minSize)}
+                onChange={(event) => {
+                  const value = Number(event.target.value)
+                  if (Number.isFinite(value)) update(field.id, { size: value })
+                }}
+                step='0.5'
+                type='number'
+                value={String(size)}
+              />
+              <small>px</small>
+              {field.lineHeightVar && lineHeight !== undefined && (
+                <>
+                  <input
+                    aria-label={`${field.label} line height`}
+                    max='2.4'
+                    min='0.9'
+                    onChange={(event) => {
+                      const value = Number(event.target.value)
+                      if (Number.isFinite(value)) update(field.id, { lineHeight: value })
+                    }}
+                    step='0.05'
+                    type='number'
+                    value={String(lineHeight)}
+                  />
+                  <small>line</small>
+                </>
+              )}
+              <button
+                aria-label={`Reset ${field.label}`}
+                className={isCustom ? 'typography-reset' : 'typography-reset hidden'}
+                onClick={(event) => {
+                  event.preventDefault()
+                  const next = { ...typography }
+                  delete next[field.id]
+                  onTypographyChange(next)
+                }}
+                tabIndex={isCustom ? 0 : -1}
+                type='button'
+              >
+                reset
+              </button>
+            </label>
+          )
+        })}
+      </div>
+      <button className='typography-reset-all' onClick={onResetTypography} type='button'>
+        Reset all to defaults
+      </button>
+    </section>
+  )
+}
+
 function TerminalSettings({ terminalCommand, onTerminalCommandChange }: TerminalSettingsProps) {
   return (
     <section>
@@ -365,6 +450,9 @@ export function SettingsPanel({
   onUpdateThemeColor,
   onDeleteTheme,
   onResetTheme,
+  typography,
+  onTypographyChange,
+  onResetTypography,
   onReset,
   onClose,
 }: SettingsPanelProps) {
@@ -431,6 +519,19 @@ export function SettingsPanel({
                 onUpdateThemeColor={onUpdateThemeColor}
                 themeName={themeName}
                 themes={themes}
+              />
+            </TabPanel>
+          )}
+          {activeTab === 'typography' && (
+            <TabPanel
+              key='typography'
+              id='settings-tab-typography'
+              labelledBy='settings-tab-btn-typography'
+            >
+              <TypographySettings
+                onResetTypography={onResetTypography}
+                onTypographyChange={onTypographyChange}
+                typography={typography}
               />
             </TabPanel>
           )}

@@ -3,7 +3,8 @@
   margin: 0 0 18px;
 }
 .message.user .content {
-  font-size: 16px;
+  font-size: var(--fs-user);
+  line-height: var(--lh-user);
 }
 .message.user {
   width: fit-content;
@@ -91,7 +92,9 @@
   display: block;
   margin-top: 8px;
   color: color-mix(in srgb, var(--ink) 60%, transparent);
-  font: 11px ui-monospace, monospace;
+  font:
+    var(--fs-timestamp) ui-monospace,
+    monospace;
   text-align: right;
 }
 .message-image {
@@ -104,7 +107,10 @@
 }
 .content {
   overflow-wrap: anywhere;
-  font: 16px/1.4 ui-sans-serif, system-ui, sans-serif;
+  font:
+    var(--fs-reply)/var(--lh-reply) ui-sans-serif,
+    system-ui,
+    sans-serif;
 }
 .content > :first-child, .reasoning > :first-child {
   margin-top: 0;
@@ -181,13 +187,16 @@
   flex: 1;
   color: var(--muted);
   opacity: 0.9;
-  font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif;
+  font:
+    400 var(--fs-teaser)/var(--lh-teaser) ui-sans-serif,
+    system-ui,
+    sans-serif;
 }
 .reasoning {
   margin: 0 0 13px;
   color: color-mix(in srgb, var(--ink) 70%, var(--canvas));
-  font-size: 16px;
-  line-height: 1.2;
+  font-size: var(--fs-thinking);
+  line-height: var(--lh-thinking);
   overflow-wrap: anywhere;
 }
 .reasoning-block.open .reasoning {
@@ -260,7 +269,9 @@
   border: 1px solid var(--line);
   border-radius: 9px;
   background: color-mix(in srgb, var(--canvas) 60%, var(--surface));
-  font: 12px/1.6 ui-monospace, monospace;
+  font:
+    var(--fs-tool-output)/var(--lh-tool-output) ui-monospace,
+    monospace;
   white-space: pre-wrap;
 }
 .content :not(pre) > code {

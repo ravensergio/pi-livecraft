@@ -447,3 +447,65 @@
     width: 100%;
   }
 }
+
+/* ── Typography tab ── */
+.typography-rows {
+  display: grid;
+  gap: 10px;
+}
+.typography-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.typography-row > span {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink);
+}
+.typography-row input[type="number"] {
+  width: 64px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  padding: 5px 7px;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface);
+}
+.typography-row input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.typography-row small {
+  width: 26px;
+  font-size: 11px;
+  color: var(--subtle);
+}
+.typography-reset {
+  border: 0;
+  background: transparent;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.typography-reset.hidden {
+  visibility: hidden;
+}
+.typography-reset:hover {
+  color: var(--danger);
+}
+.typography-reset-all {
+  margin-top: 14px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.typography-reset-all:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
