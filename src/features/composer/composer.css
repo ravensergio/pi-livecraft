@@ -351,6 +351,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.composer-stats-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 .composer-stats {
   flex: 0 0 auto;
   gap: 12px;

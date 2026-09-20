@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import type { SessionSummary } from '../../../../shared/types.ts'
-import { SessionInfo } from './SessionInfo.tsx'
+// import { SessionInfo } from './SessionInfo.tsx'
 import { SessionStats } from './SessionStats.tsx'
 import type { StatusTone } from './status-tone.ts'
 
@@ -17,7 +17,7 @@ function extensionStatusTone(text: string): string {
 /** Status bar shown below the composer: session name, directory, cost, and context usage. */
 export const ComposerStatusBar = memo(function ComposerStatusBar(
   {
-    session,
+    // session (name/cwd) no longer rendered — see commented SessionInfo below.
     running,
     compacting,
     contextClass,
@@ -38,13 +38,13 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
 ) {
   return (
     <div className='composer-info' aria-label='Session information'>
-      {compacting
-        ? (
-          <div aria-label='Compaction in progress' className='composer-compacting' role='status'>
-            <span aria-hidden='true' className='composer-compacting-spinner' /> Compaction en cours…
-          </div>
-        )
-        : <SessionInfo name={session.name} cwd={session.cwd} active={running} />}
+      {compacting && (
+        <div aria-label='Compaction in progress' className='composer-compacting' role='status'>
+          <span aria-hidden='true' className='composer-compacting-spinner' /> Compaction en cours…
+        </div>
+      )}
+      {/* Session name + folder live in the sidebar; keep only the "Pi is working" dot here. */}
+      {/* <SessionInfo name={session.name} cwd={session.cwd} active={running} /> */}
       {extensionStatuses.map(({ text, tone }, index) => (
         <span
           className={tone ? `ext-status-chip ${tone}` : extensionStatusTone(text)}
@@ -54,12 +54,17 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
           {text}
         </span>
       ))}
-      <SessionStats
-        contextClass={contextClass}
-        contextTokens={contextTokens}
-        contextPercent={contextPercent}
-        contextPercentValue={contextPercentValue}
-      />
+      <div className='composer-stats-wrap'>
+        {running && (
+          <span aria-label='Pi is active' className='session-status-indicator working' role='img' />
+        )}
+        <SessionStats
+          contextClass={contextClass}
+          contextTokens={contextTokens}
+          contextPercent={contextPercent}
+          contextPercentValue={contextPercentValue}
+        />
+      </div>
     </div>
   )
 })
