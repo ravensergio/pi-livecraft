@@ -4,11 +4,16 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: clip;
-  padding: 42px max(28px, calc((100% - 900px) / 2)) 5px;
+  padding: 42px max(28px, calc((100% - 900px) / 2)) 10px;
   scrollbar-gutter: stable;
 }
 .conversation-content {
   min-width: 0;
+}
+/* The last message's 18px bottom margin would double up with the container padding.
+   Trim it so the gap above the composer stays even. */
+.conversation .conversation-content > :last-child {
+  margin-bottom: 0;
 }
 .conversation-content .content {
   cursor: text;
