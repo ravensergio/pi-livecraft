@@ -769,10 +769,8 @@
   box-shadow: none;
 }
 .icon-button.danger {
-  width: 36px;
-  height: 36px;
   border-color: var(--danger);
-  border-radius: 10px;
+  border-radius: 5px;
   background: var(--danger);
   color: var(--surface);
   box-shadow: 0 2px 0 color-mix(in srgb, var(--danger) 72%, black);
