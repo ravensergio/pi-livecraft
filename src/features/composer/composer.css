@@ -291,7 +291,7 @@
   gap: 18px;
   min-width: 0;
   border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
-  padding: 4px 12px 5px;
+  padding: 3px 12px 5px;
 }
 /* Thinking-mode toggle — a plain button wearing the composer-select look. */
 .composer-select.reasoning {
@@ -411,7 +411,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 4px 8px 2px;
+  padding: 4px 8px 1px;
 }
 .composer-tools {
   display: flex;
