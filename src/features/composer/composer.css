@@ -771,7 +771,6 @@
   border-radius: 5px;
   background: var(--danger);
   color: var(--surface);
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--danger) 72%, black);
 }
 .icon-button.danger:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--danger) 86%, var(--ink));
