@@ -735,10 +735,8 @@
   }
 }
 .icon-button.send {
-  width: 36px;
-  height: 36px;
   border-color: var(--accent);
-  border-radius: 10px;
+  border-radius: 5px;
   background: var(--accent);
   color: var(--surface);
   box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 72%, black);
