@@ -611,7 +611,7 @@ export const Composer = memo(function Composer({
           }
         }}
         placeholder='Ask Pi…  / for commands'
-        rows={3}
+        rows={2}
       />
       {suggestion && (
         <section
