@@ -745,7 +745,7 @@ export const Composer = memo(function Composer({
                     type='button'
                   >
                     <svg aria-hidden='true' viewBox='0 0 16 16'>
-                      <rect height='8' rx='1.5' width='8' x='4' y='4' />
+                      <rect height='7' rx='1.5' width='7' x='4.5' y='4.5' />
                     </svg>
                   </button>
                 </Tooltip>
