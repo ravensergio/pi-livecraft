@@ -151,6 +151,7 @@ export const Markdown = memo(function Markdown(
       )}
       <ReactMarkdown
         components={{
+          a: (props) => <a {...props} rel='noreferrer' target='_blank' />,
           code: ({ children: code, className }) => (
             <MarkdownCode className={className}>{code}</MarkdownCode>
           ),
