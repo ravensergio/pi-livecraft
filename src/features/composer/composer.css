@@ -408,20 +408,21 @@
 }
 .composer-actions {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 12px;
   padding: 3px 8px 0;
 }
 .composer-tools {
   display: flex;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 5px;
   min-width: 0;
 }
 .composer-primary-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
 .composer-stop-slot {
