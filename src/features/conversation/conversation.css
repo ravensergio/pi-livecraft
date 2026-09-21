@@ -419,3 +419,22 @@
     opacity: 0;
   }
 }
+
+/* Selection quote button — floats above selected text in assistant messages. */
+.selection-quote-btn {
+  z-index: 100;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 12%, transparent);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.selection-quote-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line-strong));
+  background: var(--surface);
+}

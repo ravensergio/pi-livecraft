@@ -29,6 +29,7 @@ import { ActivityIndicator } from './ActivityIndicator.tsx'
 import { Markdown } from './Markdown.tsx'
 import { MessageCard, type ReasoningMode, TurnUsage } from './MessageCard.tsx'
 import { isVisibleConversationMessage } from './message-display.ts'
+import { SelectionQuote } from './SelectionQuote.tsx'
 import { ToolCallCard } from './ToolCallCard.tsx'
 import {
   conversationHistoryStart,
@@ -588,6 +589,7 @@ export function Conversation(
           />
         </svg>
       </button>
+      <SelectionQuote />
     </section>
   )
 }

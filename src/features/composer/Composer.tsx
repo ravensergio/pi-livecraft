@@ -243,6 +243,31 @@ export const Composer = memo(function Composer({
     if (textarea) textarea.setSelectionRange(textarea.value.length, textarea.value.length)
   }, [historyIndex])
 
+  // Quote selection from replies — insert as blockquote at cursor.
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<{ text: string }>
+      const textarea = textareaRef.current
+      if (!textarea) return
+      const text = custom.detail.text
+      const quote = text.split('\n').map((line) => `> ${line}`).join('\n')
+      const start = textarea.selectionStart ?? textarea.value.length
+      const end = textarea.selectionEnd ?? textarea.value.length
+      const before = textarea.value.slice(0, start)
+      const after = textarea.value.slice(end)
+      const needsNewline = before && !before.endsWith('\n')
+      const insertAt = start + (needsNewline ? 1 : 0)
+      const newValue = before + (needsNewline ? '\n' : '') + quote + '\n' + after
+      setMessage(newValue)
+      requestAnimationFrame(() => {
+        textarea.setSelectionRange(insertAt + quote.length + 1, insertAt + quote.length + 1)
+        textarea.focus()
+      })
+    }
+    document.addEventListener('livecraft:insert-quote', handler)
+    return () => document.removeEventListener('livecraft:insert-quote', handler)
+  }, [])
+
   /** Persists the draft to storage, tolerating unavailable storage (private browsing). */
   const persistDraft = useCallback((text: string): void => {
     try {
