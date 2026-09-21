@@ -6,6 +6,17 @@
   font-size: var(--fs-user);
   line-height: var(--lh-user);
 }
+/* Quoted text (e.g. from "Ask about this") — visible as a quote, not flat text. */
+.content blockquote {
+  margin: 6px 0;
+  padding: 2px 12px;
+  border-left: 3px solid
+    color-mix(in srgb, var(--line-strong) 85%, transparent);
+  color: color-mix(in srgb, var(--ink) 72%, transparent);
+}
+.content blockquote p {
+  margin: 0;
+}
 .message.user {
   width: fit-content;
   max-width: 78%;
