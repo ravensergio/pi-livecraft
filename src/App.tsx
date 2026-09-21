@@ -321,6 +321,22 @@ function App() {
 
   /** Restores visible dialogs and resolves stale agent selectors that block manager restart. */
   const handleSessionsRefreshed = useCallback((nextSessions: SessionSummary[]): void => {
+    // Seed extension status chips from server-side memory — late-attaching clients
+    // miss the one-shot setStatus emissions, so the snapshot carries current state.
+    setExtensionStatuses((current) => {
+      let changed = false
+      const next = { ...current }
+      for (const session of nextSessions) {
+        const existing = next[session.id] ?? {}
+        for (const { key, text } of session.extensionStatuses ?? []) {
+          if (key in existing || !text.trim()) continue
+          changed = true
+          const clean = text.replace(/\u001b\[[0-9;]*m/g, '').trim()
+          next[session.id] = { ...existing, [key]: { text: clean, tone: toneFromAnsi(text) } }
+        }
+      }
+      return changed ? next : current
+    })
     // Restore user-facing dialogs (excludes agent selectors which are handled silently)
     const pending = nextSessions
       .flatMap((session) =>

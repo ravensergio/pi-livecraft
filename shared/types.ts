@@ -7,6 +7,8 @@ export interface SessionSummary {
   sessionPath?: string
   activeAgent?: string
   status: 'starting' | 'idle' | 'running' | 'exited'
+  /** Latest extension statuses (raw ANSI text) so late-attaching clients see current state. */
+  extensionStatuses?: Array<{ key: string; text: string }>
   pendingUi: JsonObject[]
 }
 

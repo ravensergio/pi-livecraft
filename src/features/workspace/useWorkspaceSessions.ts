@@ -116,10 +116,22 @@ export function useWorkspaceSessions(
     const shouldAutoSelect = autoSelectOnRefreshRef.current
     setIsRefreshingSessions(true)
     try {
-      const [nextSessions, nextRecentSessions] = await Promise.all([
-        listSessions(),
-        listRecentSessions(cwd),
-      ])
+      // The manager can answer 500 while the pi handshake is still in flight —
+      // retry with backoff instead of surfacing raw JSON to the user.
+      let nextSessions: Awaited<ReturnType<typeof listSessions>>
+      let nextRecentSessions: Awaited<ReturnType<typeof listRecentSessions>>
+      for (let attempt = 0;; attempt++) {
+        try {
+          ;[nextSessions, nextRecentSessions] = await Promise.all([
+            listSessions(),
+            listRecentSessions(cwd),
+          ])
+          break
+        } catch (cause) {
+          if (attempt >= 3 || version !== refreshVersionRef.current) throw cause
+          await new Promise((resolve) => setTimeout(resolve, 750 * (attempt + 1)))
+        }
+      }
       if (version !== refreshVersionRef.current) return
       const autoSelectId = shouldAutoSelect
         ? pickSessionOnOpen(

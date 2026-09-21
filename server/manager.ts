@@ -50,6 +50,8 @@ interface ManagedSession {
   summary: SessionSummary
   pi: PiProcess
   pendingUi: Map<string, JsonObject>
+  /** Latest extension status per key (raw ANSI text) — survives client reconnects. */
+  extensionStatuses: Map<string, string>
   inFlightRequests: number
   switching: boolean
   bufferedEvents: JsonObject[]
@@ -158,8 +160,9 @@ async function handleRequest(socket: Socket, value: unknown): Promise<void> {
 }
 
 function listSessions(): SessionSummary[] {
-  return [...sessions.values()].map(({ summary, pendingUi }) => ({
+  return [...sessions.values()].map(({ summary, pendingUi, extensionStatuses }) => ({
     ...summary,
+    extensionStatuses: [...extensionStatuses.entries()].map(([key, text]) => ({ key, text })),
     pendingUi: [...pendingUi.values()],
   }))
 }
@@ -362,6 +365,7 @@ async function startSession(summary: SessionSummary): Promise<void> {
   const session: ManagedSession = {
     summary,
     pi,
+    extensionStatuses: new Map(),
     pendingUi: new Map(),
     inFlightRequests: 0,
     switching: false,
@@ -612,6 +616,14 @@ function handlePiEvent(session: ManagedSession, event: JsonObject): void {
   ) {
     session.summary.activeAgent = activeAgentFromStatus(event.statusText)
     event.activeAgent = session.summary.activeAgent
+  }
+  if (event.type === 'extension_ui_request' && event.method === 'setStatus') {
+    const key = typeof event.statusKey === 'string' ? event.statusKey : ''
+    if (key && key !== 'agent' && key !== 'pi-livecraft.quotas') {
+      const raw = typeof event.statusText === 'string' ? event.statusText : ''
+      if (raw.trim()) session.extensionStatuses.set(key, raw)
+      else session.extensionStatuses.delete(key)
+    }
   }
   if (
     event.type === 'extension_ui_request' && isBlockingUiRequest(event)
