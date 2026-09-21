@@ -257,10 +257,11 @@ export const Composer = memo(function Composer({
       const after = textarea.value.slice(end)
       const needsNewline = before && !before.endsWith('\n')
       const insertAt = start + (needsNewline ? 1 : 0)
-      const newValue = before + (needsNewline ? '\n' : '') + quote + '\n' + after
+      // Blank line after the quote separates it from what you type next.
+      const newValue = before + (needsNewline ? '\n' : '') + quote + '\n\n' + after
       setMessage(newValue)
       requestAnimationFrame(() => {
-        textarea.setSelectionRange(insertAt + quote.length + 1, insertAt + quote.length + 1)
+        textarea.setSelectionRange(insertAt + quote.length + 2, insertAt + quote.length + 2)
         textarea.focus()
       })
     }
