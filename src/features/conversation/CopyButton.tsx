@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip.tsx'
+import { copyText } from '../../lib/clipboard.ts'
 
 interface CopyButtonProps {
   direction?: 'input' | 'output'
@@ -24,7 +25,7 @@ export function CopyButton({ direction, label, onError, value }: CopyButtonProps
     setBusy(true)
     try {
       const text = typeof value === 'function' ? value() : value
-      await navigator.clipboard.writeText(text)
+      await copyText(text)
       setCopied(true)
     } catch (cause) {
       onError?.(cause)

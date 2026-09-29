@@ -31,6 +31,7 @@ import type {
 import { isObject } from '../shared/is-object.ts'
 import { Composer } from './features/composer/Composer.tsx'
 import { toneFromAnsi, type StatusTone } from './features/composer/status-bar/status-tone.ts'
+import { copyText } from './lib/clipboard.ts'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { sessionActivity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
@@ -1060,9 +1061,7 @@ function App() {
         showToast('notice', 'No assistant response to copy.')
         return
       }
-      void navigator
-        .clipboard
-        .writeText(text)
+      void copyText(text)
         .then(() => showToast('notice', 'Last response copied.'))
         .catch((cause) => showToast('error', messageOf(cause)))
       return
