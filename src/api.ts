@@ -297,7 +297,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ? { 'Content-Type': 'application/json', ...init.headers }
       : init?.headers,
   })
-  const value: unknown = await response.json()
+  // An empty body (stale connection after long AFK) would throw a raw
+  // JSON.parse error — surface it as a clean, retryable failure instead.
+  const body = await response.text()
+  if (!body) throw new Error(`Server returned an empty response (${response.status})`)
+  let value: unknown
+  try {
+    value = JSON.parse(body)
+  } catch {
+    throw new Error(`Server returned invalid JSON (${response.status})`)
+  }
   if (!response.ok) {
     const message = isObject(value) && typeof value.error === 'string'
       ? value.error
