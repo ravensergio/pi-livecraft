@@ -309,12 +309,15 @@
   height: 36px;
   border: 1px solid var(--accent);
   border-radius: 9px;
-  padding: 0 12px;
+  padding: 0 8px;
   /* Darker fill than raw accent in both themes; hover state matched below. */
   background: color-mix(in srgb, var(--accent) 72%, black);
   color: var(--on-accent);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   box-shadow:
     0 2px 0 var(--accent-hover),
     0 5px 10px color-mix(in srgb, var(--accent) 16%, transparent);
