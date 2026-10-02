@@ -126,11 +126,16 @@ export function conversationMessageEntries(
       historyIndex,
     }
   })
+  // Only the most recent live message is the in-flight one. Older streamed
+  // messages that fell out of the match tail window (or failed to match) would
+  // otherwise render as duplicates stuck at the bottom of the conversation.
+  const lastLive = liveMessages.at(-1)
+  const liveTail = lastLive && !matchedLiveIds.has(lastLive.id)
+    ? [{ key: lastLive.id, message: lastLive.message, source: 'live' as const }]
+    : []
   return [
     ...historyEntries,
-    ...liveMessages
-      .filter(({ id }) => !matchedLiveIds.has(id))
-      .map(({ id, message }) => ({ key: id, message, source: 'live' as const })),
+    ...liveTail,
   ]
 }
 
