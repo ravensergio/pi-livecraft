@@ -148,6 +148,7 @@ async function handleRequest(socket: Socket, value: unknown): Promise<void> {
     else if (value.action === 'close') data = await closeSession(value)
     else if (value.action === 'rename') data = await renameSession(value)
     else if (value.action === 'delete') data = await deleteStoredSession(value)
+    else if (value.action === 'upgrade') data = await upgradeSession(value)
     else if (value.action === 'improve_prompt') data = await improvePrompt(value)
     else if (value.action === 'run_prompt') data = await runPrompt(value)
     else data = await sendCommand(value)
@@ -218,6 +219,7 @@ async function createSession(request: ManagerRequest): Promise<SessionSummary> {
     cwd,
     name: 'New session',
     status: 'starting',
+    temporary: request.temporary === true,
     pendingUi: [],
   }
 
@@ -277,6 +279,10 @@ async function closeSession(request: ManagerRequest): Promise<{ closed: true }> 
   if (typeof request.sessionId !== 'string') throw new Error('Session id is required')
   const session = sessions.get(request.sessionId)
   if (!session) throw new Error('Unknown session')
+  // Temporary sessions are disposable: remove the persisted file on close,
+  // even when the process already exited on its own.
+  if (session.summary.temporary && session.summary.sessionPath)
+    await unlink(session.summary.sessionPath).catch(() => {})
   if (session.summary.status === 'exited') return { closed: true }
 
   await session.pi.terminate()
@@ -290,6 +296,14 @@ async function closeSession(request: ManagerRequest): Promise<{ closed: true }> 
     })
   }
   return { closed: true }
+}
+/** Marks a live temporary session as normal so its file survives close. */
+async function upgradeSession(request: ManagerRequest): Promise<SessionSummary> {
+  if (typeof request.sessionId !== 'string') throw new Error('Session id is required')
+  const session = sessions.get(request.sessionId)
+  if (!session) throw new Error('Unknown session')
+  session.summary.temporary = false
+  return { ...session.summary, pendingUi: [...session.pendingUi.values()] }
 }
 
 /** Deletes a persisted session file after verifying it belongs to the claimed workspace. */
@@ -664,7 +678,7 @@ function respond(socket: Socket, response: ManagerResponse): void {
 function isManagerRequest(value: unknown): value is ManagerRequest {
   if (!isObject(value) || typeof value.id !== 'string') return false
   return value.action === 'list' || value.action === 'create' || value.action === 'open'
-    || value.action === 'close' || value.action === 'delete' || value.action === 'rename'
+    || value.action === 'close' || value.action === 'delete' || value.action === 'upgrade'
     || value.action === 'command'
     || value.action === 'improve_prompt' || value.action === 'run_prompt'
     || value.action === 'status' || value.action === 'restart'

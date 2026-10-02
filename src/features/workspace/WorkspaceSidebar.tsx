@@ -43,7 +43,7 @@ interface WorkspaceSidebarProps {
   workspacePath: string
   onChooseWorkspace: () => void
   onCloseSession: (sessionId: string) => Promise<void>
-  onCreate: () => Promise<void>
+  onCreate: (temporary: boolean) => Promise<void>
   onOpenSession: (session: RecentSession) => Promise<void>
   onOpenOtherWorkspaceSession: (session: PinnedSession) => Promise<void>
   onSelectOtherWorkspaceSession: (session: SessionSummary) => void
@@ -51,6 +51,7 @@ interface WorkspaceSidebarProps {
   onOpenSettings: () => void
   onDeleteSession: (target: SessionActionTarget) => Promise<void>
   onRenameSession: (target: SessionActionTarget, name: string) => Promise<void>
+  onUpgradeSession: (target: SessionActionTarget) => Promise<void>
   onTogglePinnedSession: (target: SessionActionTarget) => void
   onResize: (width: number) => void
   onToggleCollapsed: () => void
@@ -80,6 +81,7 @@ export function WorkspaceSidebar({
   onOpenSettings,
   onDeleteSession,
   onRenameSession,
+  onUpgradeSession,
   onTogglePinnedSession,
   onResize,
   onToggleCollapsed,
@@ -357,6 +359,7 @@ export function WorkspaceSidebar({
             cwd: recentSession.cwd,
             name: recentSession.name,
             sessionId: activeSession?.id,
+            temporary: activeSession?.temporary,
             sessionPath: recentSession.sessionPath,
           }
           return (
@@ -392,6 +395,7 @@ export function WorkspaceSidebar({
                 {isPinned && <PinIcon />}
                 <span>
                   <strong>{sessionLabel}</strong>
+                  {activeSession?.temporary && <span className='temp-badge'>temp</span>}
                 </span>
               </button>
             </Tooltip>
@@ -507,6 +511,19 @@ export function WorkspaceSidebar({
           >
             Rename…
           </button>
+          {/* Temporary live sessions can be upgraded so their file survives close. */}
+          {contextMenu.target.sessionId && contextMenu.target.temporary && (
+            <button
+              onClick={() => {
+                void onUpgradeSession(contextMenu.target).catch(onError)
+                dismissContextMenu()
+              }}
+              role='menuitem'
+              type='button'
+            >
+              Upgrade to normal session
+            </button>
+          )}
           {contextMenu.target.sessionId && (
             <button
               className='danger'
@@ -557,14 +574,17 @@ export function WorkspaceSidebar({
 
 /** Prevents duplicate session creation and reports errors to the container. */
 function NewSessionButton(
-  { onCreate, onError }: { onCreate: () => Promise<void>; onError: (cause: unknown) => void },
+  {
+    onCreate,
+    onError,
+  }: { onCreate: (temporary: boolean) => Promise<void>; onError: (cause: unknown) => void },
 ) {
   const [busy, setBusy] = useState(false)
 
-  async function create(): Promise<void> {
+  async function create(temporary: boolean): Promise<void> {
     setBusy(true)
     try {
-      await onCreate()
+      await onCreate(temporary)
     } catch (cause) {
       onError(cause)
     } finally {
@@ -573,14 +593,24 @@ function NewSessionButton(
   }
 
   return (
-    <button
-      className='new-session'
-      disabled={busy}
-      onClick={() => void create()}
-      type='button'
-    >
-      {busy ? 'Starting…' : '＋ New session'}
-    </button>
+    <div className='new-session-row'>
+      <button
+        className='new-session'
+        disabled={busy}
+        onClick={() => void create(false)}
+        type='button'
+      >
+        {busy ? 'Starting…' : '＋ New session'}
+      </button>
+      <button
+        className='new-session'
+        disabled={busy}
+        onClick={() => void create(true)}
+        type='button'
+      >
+        {busy ? 'Starting…' : '＋ New temp session'}
+      </button>
+    </div>
   )
 }
 

@@ -7,6 +7,8 @@ export interface SessionSummary {
   sessionPath?: string
   activeAgent?: string
   status: 'starting' | 'idle' | 'running' | 'exited'
+  /** Temporary sessions have their persisted file deleted when closed. */
+  temporary?: boolean
   /** Latest extension statuses (raw ANSI text) so late-attaching clients see current state. */
   extensionStatuses?: Array<{ key: string; text: string }>
   pendingUi: JsonObject[]
@@ -124,6 +126,7 @@ export interface ManagerRequest {
     | 'open'
     | 'close'
     | 'delete'
+    | 'upgrade'
     | 'rename'
     | 'command'
     | 'improve_prompt'
@@ -143,6 +146,7 @@ export interface ManagerRequest {
   tools?: string[]
   includeContextFiles?: boolean
   direction?: string
+  temporary?: boolean
 }
 
 export interface ManagerResponse {

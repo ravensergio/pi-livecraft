@@ -19,6 +19,7 @@ import {
   savePrompt,
   sendPiCommand,
   subscribeManagerEvents,
+  upgradeSession as requestUpgradeSession,
 } from './api.ts'
 import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type {
@@ -977,6 +978,17 @@ function App() {
     }
   }, [deleteManagedSession, messageOf, showToast])
 
+  /** Marks a live temporary session as normal so its file survives close. */
+  const upgradeWorkspaceSession = useCallback(
+    async (target: SessionActionTarget): Promise<void> => {
+      if (!target.sessionId) throw new Error('Session is not live')
+      await requestUpgradeSession(target.sessionId)
+      await refreshSessions()
+      showToast('notice', `Session “${target.name}” is now a normal session.`)
+    },
+    [refreshSessions, showToast],
+  )
+
   const handleComposerSelectOpened = useCallback(() => setRequestedSelect(null), [])
   /** User message history for terminal-style ArrowUp recall in the composer. */
   const messageHistory = useMemo(() => {
@@ -1280,9 +1292,10 @@ function App() {
         workspacePath={workspacePath}
         onChooseWorkspace={() => setDirectoryPickerOpen(true)}
         onCloseSession={closeManagedSession}
-        onCreate={async () => {
-          await startAndSelectSession(() => createSession(workspacePath))
+        onCreate={async (temporary) => {
+          await startAndSelectSession(() => createSession(workspacePath, temporary))
         }}
+        onUpgradeSession={upgradeWorkspaceSession}
         onOpenSession={async (recentSession) => {
           await startAndSelectSession(() => openSession(workspacePath, recentSession.sessionPath))
         }}

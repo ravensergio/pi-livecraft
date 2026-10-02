@@ -297,10 +297,16 @@
   transform: translateX(1px);
 }
 
-.new-session {
-  width: 100%;
-  height: 44px;
+.new-session-row {
+  display: flex;
+  gap: 8px;
   margin-bottom: 4px;
+}
+
+.new-session {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
   border: 1px solid var(--accent);
   border-radius: 9px;
   padding: 0 12px;
@@ -332,6 +338,17 @@
   opacity: 0.5;
   box-shadow: none;
   transform: none;
+}
+
+.temp-badge {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  vertical-align: 1px;
 }
 
 .session-list {

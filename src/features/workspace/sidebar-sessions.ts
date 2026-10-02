@@ -6,6 +6,7 @@ export interface SessionActionTarget {
   name: string
   sessionId?: string
   sessionPath?: string
+  temporary?: boolean
 }
 
 export type PinnedSession = Pick<RecentSession, 'cwd' | 'name' | 'sessionPath'>

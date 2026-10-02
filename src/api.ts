@@ -189,10 +189,10 @@ export async function savePrompt(
   })
 }
 
-export async function createSession(cwd: string): Promise<SessionSummary> {
+export async function createSession(cwd: string, temporary = false): Promise<SessionSummary> {
   return request<SessionSummary>('/api/sessions', {
     method: 'POST',
-    body: JSON.stringify({ cwd }),
+    body: JSON.stringify({ cwd, temporary }),
   })
 }
 
@@ -205,6 +205,14 @@ export async function openSession(cwd: string, sessionPath: string): Promise<Ses
 
 export async function closeSession(sessionId: string): Promise<void> {
   await request<void>(`/api/sessions/${encodeURIComponent(sessionId)}/close`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
+/** Marks a live temporary session as normal so its file survives close. */
+export async function upgradeSession(sessionId: string): Promise<void> {
+  await request<void>(`/api/sessions/${encodeURIComponent(sessionId)}/upgrade`, {
     method: 'POST',
     body: JSON.stringify({}),
   })

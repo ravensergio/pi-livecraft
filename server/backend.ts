@@ -406,7 +406,11 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       )
       return
     }
-    const session = await manager.request({ action: 'create', cwd })
+    const session = await manager.request({
+      action: 'create',
+      cwd,
+      temporary: body.temporary === true,
+    })
     sendJson(response, 201, session)
     return
   }
@@ -419,6 +423,17 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       sessionId: decodeURIComponent(closeMatch[1]),
     })
     sendJson(response, 200, { closed: true })
+    return
+  }
+
+  const upgradeMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/upgrade$/)
+  if (method === 'POST' && upgradeMatch) {
+    await readJsonBody(request)
+    await manager.request({
+      action: 'upgrade',
+      sessionId: decodeURIComponent(upgradeMatch[1]),
+    })
+    sendJson(response, 200, { upgraded: true })
     return
   }
 
