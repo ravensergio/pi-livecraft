@@ -809,7 +809,12 @@ function App() {
         managerEvent.event === 'manager_connected' || managerEvent.event === 'manager_disconnected'
       ) {
         setPiConnection(managerEvent.event === 'manager_connected' ? 'connected' : 'disconnected')
-        if (managerEvent.event === 'manager_connected') clearManagerUnavailableToasts()
+        if (managerEvent.event === 'manager_connected') {
+          clearManagerUnavailableToasts()
+          // Re-sync the open session after a reconnect (e.g. wake from sleep) —
+          // otherwise it stays stale until manually reopened.
+          if (selectedId) void refreshSnapshot(selectedId)
+        }
         clearActivity()
       }
       if (managerEvent.event === 'manager_status' && isManagerRuntimeStatus(managerEvent.data))
@@ -834,7 +839,9 @@ function App() {
     clearManagerUnavailableToasts,
     handleManagerPiEvent,
     refreshSessions,
+    refreshSnapshot,
     resetEventSequence,
+    selectedId,
     showToast,
   ])
 
