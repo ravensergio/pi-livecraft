@@ -303,6 +303,12 @@
   margin-bottom: 4px;
 }
 
+.new-session-row .tooltip-host {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
 .new-session {
   flex: 1;
   min-width: 0;
@@ -313,7 +319,7 @@
   /* Darker fill than raw accent in both themes; hover state matched below. */
   background: color-mix(in srgb, var(--accent) 72%, black);
   color: var(--on-accent);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;

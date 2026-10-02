@@ -594,22 +594,29 @@ function NewSessionButton(
 
   return (
     <div className='new-session-row'>
-      <button
-        className='new-session'
-        disabled={busy}
-        onClick={() => void create(false)}
-        type='button'
+      <Tooltip label='New session'>
+        <button
+          className='new-session'
+          disabled={busy}
+          onClick={() => void create(false)}
+          type='button'
+        >
+          {busy ? 'Starting…' : '＋ New'}
+        </button>
+      </Tooltip>
+      <Tooltip
+        label='New temp session'
+        hint='Deleted when you close it — right-click to upgrade to a normal session'
       >
-        {busy ? 'Starting…' : '＋ New session'}
-      </button>
-      <button
-        className='new-session'
-        disabled={busy}
-        onClick={() => void create(true)}
-        type='button'
-      >
-        {busy ? 'Starting…' : '＋ New temp session'}
-      </button>
+        <button
+          className='new-session'
+          disabled={busy}
+          onClick={() => void create(true)}
+          type='button'
+        >
+          {busy ? 'Starting…' : '＋ New Temp'}
+        </button>
+      </Tooltip>
     </div>
   )
 }
