@@ -202,6 +202,8 @@ function App() {
   const [extensionStatuses, setExtensionStatuses] = useState<
     Record<string, Record<string, { text: string; tone: StatusTone }>>
   >({})
+  /** Latest pi-token-speed measurement per session (tok/s) — feeds the turn footer. */
+  const [extensionTps, setExtensionTps] = useState<Record<string, number>>({})
   const [themePreferences, setThemePreferences] = useState(() => readThemePreferences())
   const activeTheme = useMemo(() => resolveActiveTheme(themePreferences), [themePreferences])
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
@@ -744,6 +746,12 @@ function App() {
             else delete perSession[key]
             return { ...current, [sessionId]: perSession }
           })
+          // pi-token-speed reports a live sliding-window TPS — capture it for the turn footer.
+          if (key === 'tokenSpeed') {
+            const raw = typeof event.statusText === 'string' ? event.statusText : ''
+            const match = raw.replace(/\u001b\[[0-9;]*m/g, '').match(/([\d.]+)\s*tok/i)
+            if (match) setExtensionTps((current) => ({ ...current, [sessionId]: Number(match[1]) }))
+          }
         }
       }
       if (
@@ -1317,6 +1325,7 @@ function App() {
                     onFork={handleForkConversation}
                     pendingSteering={pendingSteering}
                     requestDurations={observedRequestDurations}
+                    extensionTps={extensionTps[selectedSession.id]}
                     repositoryRoot={gitSnapshot?.root}
                     scrollToBottomRequest={scrollToBottomRequest}
                     workingDirectory={selectedSession.cwd}

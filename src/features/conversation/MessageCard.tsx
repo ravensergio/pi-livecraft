@@ -97,13 +97,17 @@ function DefaultCustomMessage({ message }: { message: JsonObject & { customType?
 
 /** Displays counters billed by Pi for a completed assistant response. */
 export function TurnUsage(
-  { durationMs, turnNumber, usage }: {
+  { durationMs, extensionTps, turnNumber, usage }: {
     durationMs?: number
+    extensionTps?: number
     turnNumber?: number
     usage: MessageUsage
   },
 ) {
-  const speed = durationMs && durationMs > 0 ? usage.output / (durationMs / 1000) : null
+  // Prefer the pi-token-speed extension's sliding-window measurement when present;
+  // fall back to the turn's own output/duration calculation.
+  const speed = extensionTps
+    ?? (durationMs && durationMs > 0 ? usage.output / (durationMs / 1000) : null)
   return (
     <dl className='turn-usage'>
       {turnNumber !== undefined && (

@@ -49,6 +49,7 @@ export function Conversation(
     navigationRequest,
     pendingSteering,
     requestDurations,
+    extensionTps,
     repositoryRoot,
     scrollToBottomRequest,
     toolDurations,
@@ -66,6 +67,8 @@ export function Conversation(
     navigationRequest?: { id: number; target: SessionAnalysisTarget }
     pendingSteering: string[]
     requestDurations: ReadonlyMap<number, number>
+    /** Latest pi-token-speed measurement — shown in the most recent turn's footer. */
+    extensionTps?: number
     repositoryRoot?: string | null
     scrollToBottomRequest: number
     toolDurations: ReadonlyMap<string, number>
@@ -169,6 +172,8 @@ export function Conversation(
     },
     [allMessages, requestDurations, resolvedCallIds],
   )
+  let lastTurnIndex = -1
+  for (const key of turnFooters.keys()) if (key > lastTurnIndex) lastTurnIndex = key
   const liveToolCallIds = useMemo(
     () =>
       new Set(
@@ -456,6 +461,7 @@ export function Conversation(
                 {footer && (
                   <TurnUsage
                     durationMs={footer.durationMs}
+                    extensionTps={index === lastTurnIndex ? extensionTps : undefined}
                     turnNumber={footer.turnNumber}
                     usage={footer.usage}
                   />
