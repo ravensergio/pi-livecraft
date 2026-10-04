@@ -10,6 +10,7 @@ import {
   applyToolExecutionUpdate,
   interruptToolCallGeneration,
   isToolCallPending,
+  nestedCallsInMessage,
   toolCallInUpdate,
   toolCallsInMessage,
   toolContentText,
@@ -335,5 +336,51 @@ test('strips executable HTML from the inline preview', () => {
         + '<img onerror=run() src="image.png">',
     ),
     '<button>Open</button><a>Run</a><img src="image.png">',
+  )
+})
+
+test('extracts nested calls from a parent tool result and rejects non-nested messages', () => {
+  const nested = nestedCallsInMessage({
+    role: 'toolResult',
+    toolCallId: 'call_parent',
+    toolName: 'codemode',
+    content: 'script output',
+    nestedCalls: {
+      calls: [{
+        id: 'call_parent/1',
+        name: 'mcp__basic_memory__read_note',
+        status: 'ok',
+        arguments: { identifier: 'note' },
+        durationMs: 46,
+      }],
+      complete: true,
+    },
+  })
+  assert.deepEqual(nested, [{
+    id: 'call_parent/1',
+    name: 'mcp__basic_memory__read_note',
+    status: 'ok',
+    arguments: { identifier: 'note' },
+    durationMs: 46,
+  }])
+  assert.equal(
+    nestedCallsInMessage({
+      role: 'toolResult',
+      toolCallId: 'call_1',
+      toolName: 'bash',
+      content: 'out',
+    }),
+    null,
+  )
+  assert.equal(nestedCallsInMessage({ role: 'assistant', content: [] }), null)
+  assert.equal(
+    nestedCallsInMessage({
+      role: 'toolResult',
+      toolCallId: 'call_1',
+      toolName: 'bash',
+      content: 'out',
+      nestedCalls: { calls: 'nope' },
+    }),
+    null,
   )
 })

@@ -32,6 +32,8 @@ export interface ToolExecution extends ToolCall {
   contentIndex?: number
   /** Retains delta-only JSON while public RPC omits partial assistant messages. */
   rawArguments?: string
+  /** Set when another tool (for example a codemode script) issued this call. */
+  parentToolCallId?: string
   partialResult?: ToolResult
   result?: ToolResult
   status: 'generating' | 'running' | 'interrupted'
@@ -184,6 +186,27 @@ export function toolResultInMessage(message: JsonObject): ToolResult | null {
     isError: message.isError === true,
     details: message.details,
   }
+}
+
+/** One entry of the bounded `nestedCalls` record pi keeps on a parent tool result. */
+export interface NestedCallRecord {
+  id: string
+  name: string
+  status?: string
+  arguments?: unknown
+  args?: string
+  durationMs?: number
+}
+
+/** Extracts the calls a tool made through ctx.executeTool() (e.g. codemode → MCP).
+ *  Such calls never appear as tool calls in the transcript — only in this record. */
+export function nestedCallsInMessage(message: JsonObject): NestedCallRecord[] | null {
+  if (message.role !== 'toolResult' || !isObject(message.nestedCalls)) return null
+  const calls = message.nestedCalls.calls
+  if (!Array.isArray(calls)) return null
+  return calls.filter((call): call is NestedCallRecord =>
+    isObject(call) && typeof call.id === 'string' && typeof call.name === 'string'
+  )
 }
 
 export function isToolCallPending(result: ToolResult | undefined): boolean {

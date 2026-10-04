@@ -215,7 +215,15 @@ export function useConversationRuntime(
         toolStartedAtRef.current.set(id, performance.now())
         setToolExecutions((current) => [
           ...current.filter((execution) => execution.id !== id),
-          { id, name, args, status: 'running' },
+          {
+            id,
+            name,
+            args,
+            parentToolCallId: typeof event.parentToolCallId === 'string'
+              ? event.parentToolCallId
+              : undefined,
+            status: 'running',
+          },
         ])
       }
       if (

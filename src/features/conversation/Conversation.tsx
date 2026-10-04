@@ -1,4 +1,5 @@
 import {
+  Fragment,
   startTransition,
   useCallback,
   useEffect,
@@ -14,6 +15,7 @@ import type { Activity } from './activity.ts'
 import {
   addUsage,
   createEmptyUsage,
+  formatDuration,
   nearestRequestDuration,
   turnUsageByMessage,
   type MessageUsage,
@@ -23,7 +25,14 @@ import {
   conversationMessageEntries,
   type LiveMessage,
 } from './message-reconciliation.ts'
-import { toolCallsInMessage, toolResultInMessage, type ToolExecution } from './tool-protocol.ts'
+import {
+  nestedCallsInMessage,
+  toolCallsInMessage,
+  toolResultInMessage,
+  type NestedCallRecord,
+  type ToolExecution,
+} from './tool-protocol.ts'
+import { toolDataLength } from './tool-presentation.ts'
 import type { SessionAnalysisTarget } from '../session-analysis/session-analysis.ts'
 import { ActivityIndicator } from './ActivityIndicator.tsx'
 import { Markdown } from './Markdown.tsx'
@@ -101,6 +110,88 @@ export function Conversation(
     () => new Map(toolExecutions.map((execution) => [execution.id, execution])),
     [toolExecutions],
   )
+  /** Bounded nested-call records (e.g. codemode → MCP) keyed by the parent tool call id. */
+  const nestedCallsByParent = useMemo(() => {
+    const byParent = new Map<string, NestedCallRecord[]>()
+    for (const message of allMessages) {
+      if (message.role !== 'toolResult' || typeof message.toolCallId !== 'string') continue
+      const calls = nestedCallsInMessage(message)
+      if (calls && calls.length > 0) byParent.set(message.toolCallId, calls)
+    }
+    return byParent
+  }, [allMessages])
+  /** Nested call ids — they belong under their parent card, never at the conversation bottom. */
+  const nestedCallIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const calls of nestedCallsByParent.values()) for (const call of calls) ids.add(call.id)
+    for (const execution of toolExecutions) if (execution.parentToolCallId) ids.add(execution.id)
+    return ids
+  }, [nestedCallsByParent, toolExecutions])
+  /** Renders the calls a tool made through ctx.executeTool() under their parent card. */
+  const renderNestedCalls = (parentCallId: string) => {
+    const record = nestedCallsByParent.get(parentCallId) ?? []
+    const live = toolExecutions.filter((execution) =>
+      execution.parentToolCallId === parentCallId
+      && !record.some((call) => call.id === execution.id)
+    )
+    if (record.length === 0 && live.length === 0) return null
+    return (
+      <div className='tool-call-nested'>
+        {record.map((call) => {
+          const execution = executionsByCallId.get(call.id)
+          if (execution)
+            return (
+              <ToolCallCard
+                animateLiveChanges
+                args={execution.args}
+                durationMs={toolDurations.get(call.id) ?? call.durationMs}
+                hasResult={execution.result !== undefined}
+                id={call.id}
+                key={call.id}
+                name={call.name}
+                onError={onError}
+                partialResultContent={execution.partialResult?.content}
+                repositoryRoot={repositoryRoot}
+                resultContent={execution.result?.content}
+                semiDetailed={semiDetailed}
+                streaming={execution.status === 'running'}
+                workingDirectory={workingDirectory}
+              />
+            )
+          // ponytail: pi does not persist nested result content — a compact row is all a reloaded
+          // session can show. Full card renders while the live execution is in memory.
+          return (
+            <div className='tool-call-nested-row' key={call.id}>
+              <span aria-hidden='true'>⌘</span>
+              <strong>{call.name}</strong>
+              <small>
+                ↘ {toolDataLength(call.arguments ?? call.args)} car.
+                {call.durationMs !== undefined && ` · ⏱ ${formatDuration(call.durationMs)}`}
+              </small>
+            </div>
+          )
+        })}
+        {live.map((execution) => (
+          <ToolCallCard
+            animateLiveChanges
+            args={execution.args}
+            durationMs={toolDurations.get(execution.id)}
+            hasResult={execution.result !== undefined}
+            id={execution.id}
+            key={execution.id}
+            name={execution.name}
+            onError={onError}
+            partialResultContent={execution.partialResult?.content}
+            repositoryRoot={repositoryRoot}
+            resultContent={execution.result?.content}
+            semiDetailed={semiDetailed}
+            streaming={execution.status === 'running'}
+            workingDirectory={workingDirectory}
+          />
+        ))}
+      </div>
+    )
+  }
   /** Call IDs whose result has arrived, either from history or a live tool_execution_end. */
   const resolvedCallIds = useMemo(
     () =>
@@ -436,26 +527,28 @@ export function Conversation(
                   const execution = executionsByCallId.get(call.id)
                   const result = resultsByCallId.get(call.id) ?? execution?.result
                   return (
-                    <ToolCallCard
-                      args={call.args}
-                      hasResult={result !== undefined}
-                      semiDetailed={semiDetailed}
-                      id={call.id}
-                      durationMs={toolDurations.get(call.id)}
-                      interrupted={execution?.status === 'interrupted'}
-                      key={call.id}
-                      name={call.name}
-                      onError={onError}
-                      partialResultContent={execution?.partialResult?.content}
-                      repositoryRoot={repositoryRoot}
-                      resultContent={result?.content}
-                      workingDirectory={workingDirectory}
-                      resultDetails={result?.details}
-                      resultError={result?.isError}
-                      streaming={execution?.status === 'generating'}
-                      streamingArguments={execution?.rawArguments}
-                      targeted={highlightedTarget === `tool:${call.id}`}
-                    />
+                    <Fragment key={call.id}>
+                      <ToolCallCard
+                        args={call.args}
+                        hasResult={result !== undefined}
+                        semiDetailed={semiDetailed}
+                        id={call.id}
+                        durationMs={toolDurations.get(call.id)}
+                        interrupted={execution?.status === 'interrupted'}
+                        name={call.name}
+                        onError={onError}
+                        partialResultContent={execution?.partialResult?.content}
+                        repositoryRoot={repositoryRoot}
+                        resultContent={result?.content}
+                        workingDirectory={workingDirectory}
+                        resultDetails={result?.details}
+                        resultError={result?.isError}
+                        streaming={execution?.status === 'generating'}
+                        streamingArguments={execution?.rawArguments}
+                        targeted={highlightedTarget === `tool:${call.id}`}
+                      />
+                      {renderNestedCalls(call.id)}
+                    </Fragment>
                   )
                 })}
                 {footer && (
@@ -492,32 +585,35 @@ export function Conversation(
                     )
                     : null
                 if (!showToolCalls) return null
+                if (!showToolCalls) return null
                 const execution = executionsByCallId.get(part.call.id)
                 const result = execution?.result
                 return (
-                  <ToolCallCard
-                    animateLiveChanges
-                    args={part.call.args}
-                    hasResult={result !== undefined}
-                    semiDetailed={semiDetailed}
-                    id={part.call.id}
-                    durationMs={toolDurations.get(part.call.id)}
-                    interrupted={execution?.status === 'interrupted'}
-                    key={part.call.id}
-                    name={part
-                      .call
-                      .name}
-                    onError={onError}
-                    partialResultContent={execution?.partialResult?.content}
-                    repositoryRoot={repositoryRoot}
-                    resultContent={result?.content}
-                    workingDirectory={workingDirectory}
-                    resultDetails={result?.details}
-                    resultError={result?.isError}
-                    streaming={execution?.status === 'generating'}
-                    streamingArguments={execution?.rawArguments}
-                    targeted={highlightedTarget === `tool:${part.call.id}`}
-                  />
+                  <Fragment key={part.call.id}>
+                    <ToolCallCard
+                      animateLiveChanges
+                      args={part.call.args}
+                      hasResult={result !== undefined}
+                      semiDetailed={semiDetailed}
+                      id={part.call.id}
+                      durationMs={toolDurations.get(part.call.id)}
+                      interrupted={execution?.status === 'interrupted'}
+                      name={part
+                        .call
+                        .name}
+                      onError={onError}
+                      partialResultContent={execution?.partialResult?.content}
+                      repositoryRoot={repositoryRoot}
+                      resultContent={result?.content}
+                      workingDirectory={workingDirectory}
+                      resultDetails={result?.details}
+                      resultError={result?.isError}
+                      streaming={execution?.status === 'generating'}
+                      streamingArguments={execution?.rawArguments}
+                      targeted={highlightedTarget === `tool:${part.call.id}`}
+                    />
+                    {renderNestedCalls(part.call.id)}
+                  </Fragment>
                 )
               })}
             </div>
@@ -525,7 +621,9 @@ export function Conversation(
         })}
         {showToolCalls && toolExecutions
           .filter((execution) =>
-            !toolCallIds.has(execution.id) && !liveToolCallIds.has(execution.id)
+            !toolCallIds.has(execution.id)
+            && !liveToolCallIds.has(execution.id)
+            && !nestedCallIds.has(execution.id)
           )
           .map((execution) => (
             <ToolCallCard

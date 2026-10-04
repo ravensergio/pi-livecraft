@@ -565,3 +565,28 @@
   text-align: right;
   user-select: none;
 }
+
+/* Nested calls a tool made through ctx.executeTool() (e.g. codemode → MCP) —
+   rendered under their parent card instead of as orphans at the conversation bottom. */
+.tool-call-nested {
+  margin: -8px 2px 18px 18px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+  padding-left: 10px;
+}
+.tool-call-nested .tool-call {
+  margin-bottom: 10px;
+}
+.tool-call-nested-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 2px 10px;
+  padding: 5px 10px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 25%, var(--line));
+  border-radius: 9px;
+  color: color-mix(in srgb, var(--accent) 40%, var(--ink));
+  font: 12px/1.5 ui-monospace, monospace;
+}
+.tool-call-nested-row small {
+  color: var(--subtle);
+}
