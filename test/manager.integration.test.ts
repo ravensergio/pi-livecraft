@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { chmod, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -543,34 +543,65 @@ test('closes a Pi session without deleting its manager summary', { timeout: 10_0
   }
 })
 
-test('renames a persisted session through Pi RPC', { timeout: 10_000 }, async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'pi-manager-'))
-  const port = 45_000 + (process.pid % 10_000)
-  await writeFakePi(directory)
-  const manager = spawn(process.execPath, ['server/manager.ts'], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
-      PI_LIVECRAFT_MANAGER_PORT: String(port),
-    },
-    stdio: 'ignore',
-  })
-  const client = await connectManager(port)
-  try {
-    const renamed = await client.request('rename', {
+test(
+  'renames a persisted session by appending a session_info entry',
+  { timeout: 10_000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'pi-manager-'))
+    const port = 45_000 + (process.pid % 10_000)
+    await writeFakePi(directory)
+    const sessionPath = join(directory, 'archived.jsonl')
+    await writeFile(
+      sessionPath,
+      [
+        JSON.stringify({
+          type: 'session',
+          id: 'header-1',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          cwd: process.cwd(),
+        }),
+        JSON.stringify({
+          type: 'message',
+          id: 'entry-1',
+          parentId: null,
+          timestamp: '2026-01-01T00:00:01.000Z',
+          message: { role: 'user', content: 'Hello' },
+        }),
+      ]
+        .join('\n') + '\n',
+    )
+    const manager = spawn(process.execPath, ['server/manager.ts'], {
       cwd: process.cwd(),
-      name: 'Renamed session',
-      sessionPath: join(directory, 'archived.jsonl'),
+      env: {
+        ...process.env,
+        PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+        PI_LIVECRAFT_MANAGER_PORT: String(port),
+      },
+      stdio: 'ignore',
     })
-    assert.equal(renamed.ok, true)
-    assert.deepEqual(renamed.data, { name: 'Renamed session' })
-  } finally {
-    client.close()
-    await stopProcess(manager)
-    await rm(directory, { force: true, recursive: true })
-  }
-})
+    const client = await connectManager(port)
+    try {
+      const renamed = await client.request('rename', {
+        cwd: process.cwd(),
+        name: 'Renamed session',
+        sessionPath,
+      })
+      assert.equal(renamed.ok, true)
+      assert.deepEqual(renamed.data, { name: 'Renamed session' })
+      const lines = (await readFile(sessionPath, 'utf8')).trimEnd().split('\n')
+      const appended = JSON.parse(lines.at(-1)!)
+      assert.equal(appended.type, 'session_info')
+      assert.equal(appended.name, 'Renamed session')
+      assert.equal(appended.parentId, 'entry-1')
+      assert.equal(typeof appended.id, 'string')
+      assert.ok(appended.id.length > 0)
+    } finally {
+      client.close()
+      await stopProcess(manager)
+      await rm(directory, { force: true, recursive: true })
+    }
+  },
+)
 
 test('restarts an exited Pi session when reopening it', { timeout: 10_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pi-manager-'))

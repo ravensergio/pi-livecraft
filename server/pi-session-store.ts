@@ -234,6 +234,41 @@ async function findLatestSessionInfo(
   return null
 }
 
+/** Returns the id of the last complete non-header entry (Pi's leaf), or null for a header-only file.
+ *  Scans backward in chunks — a rename must not parse a multi-GB session. */
+export async function lastEntryId(path: string): Promise<string | null> {
+  const size = (await stat(path)).size
+  let handle: FileHandle | undefined
+  try {
+    handle = await open(path, 'r')
+    let position = size
+    let scanned = 0
+    let tail = ''
+    while (scanned < NAME_SCAN_BUDGET) {
+      const lineEnd = tail.lastIndexOf('\n')
+      const lineStart = lineEnd === -1 ? -1 : tail.lastIndexOf('\n', lineEnd - 1) + 1
+      if (lineEnd !== -1 && (lineStart > 0 || position === 0)) {
+        const value = parseLine(tail.slice(lineStart, lineEnd))
+        if (value) {
+          if (value.type === 'session') return null
+          if (typeof value.id === 'string') return value.id
+        }
+        tail = tail.slice(0, lineStart)
+        continue
+      }
+      if (position === 0) break
+      const chunkSize = Math.min(NAME_CHUNK_BYTES, position)
+      position -= chunkSize
+      const chunk = Buffer.alloc(chunkSize)
+      const { bytesRead } = await handle.read(chunk, 0, chunkSize, position)
+      tail = chunk.subarray(0, bytesRead).toString('utf8') + tail
+      scanned += bytesRead
+    }
+  } finally {
+    await handle?.close().catch(() => undefined)
+  }
+  return null
+}
 /** True when the accumulated text contains at least one complete JSON line. */
 function hasParseableLine(text: string): boolean {
   return text.split('\n').some((line) => parseLine(line) !== null)

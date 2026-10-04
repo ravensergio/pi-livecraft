@@ -3,7 +3,11 @@ import { mkdtemp, mkdir, realpath, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import test from 'node:test'
-import { listRecentPiSessions, resolvePiSessionDirectory } from '../server/pi-session-store.ts'
+import {
+  lastEntryId,
+  listRecentPiSessions,
+  resolvePiSessionDirectory,
+} from '../server/pi-session-store.ts'
 
 async function fixture(): Promise<{ directory: string; workspace: string }> {
   return {
@@ -185,3 +189,32 @@ async function writeSession(
       .join('\n'),
   )
 }
+
+test('lastEntryId returns the id of the last complete non-header entry', async () => {
+  const { directory } = await fixture()
+  const path = join(directory, 'session.jsonl')
+  const header = JSON.stringify({
+    type: 'session',
+    id: 'header-1',
+    timestamp: '2026-01-01T00:00:00.000Z',
+    cwd: '/work',
+  })
+  const entry = (index: number) =>
+    JSON.stringify({
+      type: 'message',
+      id: `entry-${index}`,
+      parentId: index === 0 ? null : `entry-${index - 1}`,
+      timestamp: '2026-01-01T00:00:01.000Z',
+      message: { role: 'user', content: 'x'.repeat(4096) },
+    })
+  const lines = [header, ...Array.from({ length: 50 }, (_, index) => entry(index))]
+  await writeFile(path, lines.join('\n') + '\n')
+  assert.equal(await lastEntryId(path), 'entry-49')
+  // A header-only file has no leaf yet (matches Pi's leafId = null for a new session)
+  const bare = join(directory, 'bare.jsonl')
+  await writeFile(bare, header + '\n')
+  assert.equal(await lastEntryId(bare), null)
+  // A trailing partial line (an in-progress write) must not break the scan
+  await writeFile(path, lines.join('\n') + '\n{"type":"message","id":"partial')
+  assert.equal(await lastEntryId(path), 'entry-49')
+})

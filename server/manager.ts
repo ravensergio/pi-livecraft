@@ -6,7 +6,7 @@
  * ManagerClient; never spawn Pi directly or bypass the supervised lifecycle.
  */
 import { randomUUID } from 'node:crypto'
-import { realpath, stat, unlink } from 'node:fs/promises'
+import { appendFile, realpath, stat, unlink } from 'node:fs/promises'
 import { createServer, type Socket } from 'node:net'
 import { JsonLineDecoder, encodeJsonLine } from './jsonl.ts'
 import { PiProcess, terminateAllPiProcesses } from './pi-process.ts'
@@ -15,7 +15,7 @@ import {
   improvementDirectionInstruction,
   loadPromptImprovementSystemPrompt,
 } from './prompt-improvement.ts'
-import { loadPiSession } from './pi-session-store.ts'
+import { lastEntryId, loadPiSession } from './pi-session-store.ts'
 import { runIsolatedPrompt } from './run-isolated-prompt.ts'
 import { isObject } from '../shared/is-object.ts'
 import type {
@@ -336,7 +336,9 @@ async function deleteStoredSession(request: ManagerRequest): Promise<{ deleted: 
   return { deleted: true }
 }
 
-/** Renames a persisted session through a disposable public Pi RPC process. */
+/** Renames a persisted session by appending a session_info entry — no Pi process needed.
+ *  The previous implementation spawned a disposable Pi process that had to load the entire
+ *  session before it could respond, which timed out (30s) on large compacted sessions. */
 async function renameSession(request: ManagerRequest): Promise<{ name: string }> {
   if (
     typeof request.cwd !== 'string' || typeof request.name !== 'string'
@@ -347,15 +349,18 @@ async function renameSession(request: ManagerRequest): Promise<{ name: string }>
     throw new Error('Session name must contain between 1 and 120 characters')
   const cwd = await realpath(request.cwd)
   if (!(await stat(cwd)).isDirectory()) throw new Error('Session cwd must be a directory')
-
-  const pi = new PiProcess(cwd, randomUUID(), request.sessionPath)
-  try {
-    await pi.request({ type: 'get_state' })
-    await pi.request({ type: 'set_session_name', name })
-    return { name }
-  } finally {
-    await pi.terminate()
+  if (!(await stat(request.sessionPath).catch(() => null))?.isFile())
+    throw new Error('Session file not found')
+  const sessionPath = await realpath(request.sessionPath)
+  const entry = {
+    type: 'session_info',
+    id: randomUUID(),
+    parentId: await lastEntryId(sessionPath),
+    timestamp: new Date().toISOString(),
+    name,
   }
+  await appendFile(sessionPath, `${JSON.stringify(entry)}\n`, 'utf8')
+  return { name }
 }
 
 /** Keeps three workspace sessions alive and reuses only long-idle processes. */
@@ -678,7 +683,8 @@ function respond(socket: Socket, response: ManagerResponse): void {
 function isManagerRequest(value: unknown): value is ManagerRequest {
   if (!isObject(value) || typeof value.id !== 'string') return false
   return value.action === 'list' || value.action === 'create' || value.action === 'open'
-    || value.action === 'close' || value.action === 'delete' || value.action === 'upgrade'
+    || value.action === 'close' || value.action === 'delete' || value.action === 'rename'
+    || value.action === 'upgrade'
     || value.action === 'command'
     || value.action === 'improve_prompt' || value.action === 'run_prompt'
     || value.action === 'status' || value.action === 'restart'
