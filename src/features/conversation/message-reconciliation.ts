@@ -63,7 +63,26 @@ function assistantContentKey(message: JsonObject): string | null {
   if (message.role !== 'assistant') return null
   const content = message.content ?? message.output
   if (content === undefined) return null
-  return JSON.stringify(content) ?? null
+  if (!Array.isArray(content)) return JSON.stringify(content) ?? null
+  return JSON.stringify(content.map(assistantContentPartKey)) ?? null
+}
+
+/** Reduces a content part to the fields shared by the live stream and persisted history.
+ *  Pi adds provider-specific fields (thinkingSignature, textSignature, redacted) to the
+ *  persisted message that the live stream never carries — keying on the full part would
+ *  make streamed messages never match their history entry. */
+function assistantContentPartKey(part: unknown): unknown {
+  if (!isObject(part)) return part
+  switch (part.type) {
+    case 'text':
+      return { type: 'text', text: part.text }
+    case 'thinking':
+      return { type: 'thinking', thinking: part.thinking }
+    case 'toolCall':
+      return { type: 'toolCall', id: part.id, name: part.name, arguments: part.arguments }
+    default:
+      return part
+  }
 }
 
 /** Checks the non-content part of a match after both messages share an index key. */

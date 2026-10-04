@@ -49,11 +49,12 @@ test('reconciles completed messages without collapsing distinct live turns', () 
   ]
 
   assert.equal(sameAssistantMessage(completed, different), false)
+  // Only the most recent live message may render at the tail; older unmatched
+  // streamed messages are dropped (they would duplicate pinned blocks).
   assert.deepEqual(
     conversationMessageEntries([completed], live).map(({ key, source }) => ({ key, source })),
     [
       { key: 'completed-1', source: 'history' },
-      { key: 'different', source: 'live' },
       { key: 'completed-2', source: 'live' },
     ],
   )
@@ -149,5 +150,39 @@ test('keeps an unmatched optimistic user message as a live entry', () => {
   assert.deepEqual(entries.map(({ key, source }) => ({ key, source })), [
     { key: 'history--0', source: 'history' },
     { key: 'opt-1', source: 'live' },
+  ])
+})
+
+test('matches a streamed tool-call message against history that carries thinkingSignature', () => {
+  // The live stream never carries provider signature fields; Pi adds them when
+  // persisting. Without normalizing, the tool-call message never matched its
+  // history entry and rendered as a duplicate stuck at the conversation bottom.
+  const toolCall = {
+    type: 'toolCall',
+    id: 'call_1',
+    name: 'mcp__basic_memory__edit_note',
+    arguments: { note: 'a' },
+  }
+  const liveMessage = {
+    role: 'assistant',
+    timestamp: 10,
+    content: [{ type: 'thinking', thinking: 'Editing' }, toolCall],
+  }
+  const historyMessage = {
+    role: 'assistant',
+    timestamp: 10,
+    content: [{ type: 'thinking', thinking: 'Editing', thinkingSignature: 'sig' }, toolCall],
+  }
+
+  assert.equal(sameMessage(liveMessage, historyMessage), true)
+
+  const reply = { role: 'assistant', timestamp: 11, content: [{ type: 'text', text: 'done' }] }
+  const entries = conversationMessageEntries(
+    [historyMessage, reply],
+    [{ id: 'live-tools', message: liveMessage }],
+  )
+  assert.deepEqual(entries.map(({ key, source }) => ({ key, source })), [
+    { key: 'live-tools', source: 'history' },
+    { key: 'history-11-1', source: 'history' },
   ])
 })
