@@ -80,7 +80,24 @@ function applyVoice(utterance: SpeechSynthesisUtterance, s: VoiceSettings): void
   utterance.volume = s.volume / 100
 }
 
-const MAX_WAITING = 3
+const MAX_WAITING = 12 // chunks, not replies
+
+/** Split text into sentence-sized chunks — Chromium browsers go silent on
+ * single utterances longer than ~15 s, so long replies must be spoken piece by piece. */
+function chunkText(text: string): string[] {
+  const sentences = text.match(/[^.!?…]+[.!?…]+\s+|[^.!?…]+$/g) ?? [text]
+  const chunks: string[] = []
+  for (const sentence of sentences) {
+    let rest = sentence.trim()
+    while (rest.length > 200) {
+      const cut = rest.lastIndexOf(' ', 200)
+      chunks.push(rest.slice(0, cut < 60 ? 200 : cut))
+      rest = rest.slice(cut + 1)
+    }
+    if (rest) chunks.push(rest)
+  }
+  return chunks.filter(Boolean)
+}
 
 function pump(): void {
   if (speakingNow) return
@@ -115,12 +132,14 @@ export function speakReply(text: string): void {
   if (!settings.enabled) return
   const clean = cleanForSpeech(text)
   if (!clean) return
+  const chunks = chunkText(clean)
   if (settings.queue) {
-    if (waiting.length >= MAX_WAITING) waiting.shift()
+    while (waiting.length + chunks.length > MAX_WAITING) waiting.shift()
   } else {
     stopSpeaking()
+    chunks.length = Math.min(chunks.length, MAX_WAITING)
   }
-  waiting.push(clean)
+  waiting.push(...chunks)
   pump()
 }
 
