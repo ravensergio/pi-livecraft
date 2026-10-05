@@ -2,10 +2,9 @@
 // speechSynthesis. Settings persist per device in localStorage, so every PC
 // you use keeps its own voice, speed, and volume.
 //
-// Queue design: each reply is split into sentence chunks. One chunk speaks at
-// a time. The browser's own state (speechSynthesis.speaking) is polled — when
-// it flips to false, the chunk is done and the next one speaks. No time
-// estimates drive the queue; a generous fallback timer only guards a stuck flag.
+// Queue design: each reply is split into sentence chunks; every chunk's
+// speak() is scheduled upfront with a timer. The browser plays queued
+// speak() calls in order — no end-event is needed to advance the queue.
 
 const LS_KEY = 'pi-livecraft.voice'
 
@@ -102,42 +101,36 @@ function makeUtterance(text: string): SpeechSynthesisUtterance {
 }
 
 const MAX_WAITING = 12 // chunks
-const POLL_MS = 200 // how often the browser state is checked
+const GAP_MS = 0 // chunks queue back to back
 
-let queue: string[] = []
-let pollTimer: number | undefined
-let fallbackTimer: number | undefined
-
-function stopTimers(): void {
-  if (pollTimer !== undefined) window.clearInterval(pollTimer)
-  if (fallbackTimer !== undefined) window.clearTimeout(fallbackTimer)
-  pollTimer = undefined
-  fallbackTimer = undefined
+/** Estimated speaking time of a chunk at the current rate. */
+function estMs(text: string): number {
+  return Math.ceil((text.length / (22 * rateFor(settings.rate))) * 1000)
 }
 
-function speakQueue(): void {
-  const chunk = queue.shift()
-  if (!chunk) {
-    stopTimers()
-    return
+let scheduled: { chunk: string; start: number }[] = []
+let timers: number[] = []
+let scheduleEnd = 0
+
+function clearTimers(): void {
+  for (const id of timers) window.clearTimeout(id)
+  timers = []
+}
+
+function scheduleFrom(items: string[], fromNow: boolean): void {
+  const now = Date.now()
+  let t = fromNow ? 0 : Math.max(0, scheduleEnd - now)
+  for (const chunk of items) {
+    const entry = { chunk, start: now + t }
+    scheduled.push(entry)
+    timers.push(window.setTimeout(() => {
+      speechSynthesis.speak(makeUtterance(chunk))
+      const i = scheduled.indexOf(entry)
+      if (i >= 0) scheduled.splice(i, 1)
+    }, t))
+    t += estMs(chunk) + GAP_MS
   }
-  speechSynthesis.speak(makeUtterance(chunk))
-  // Deterministic: poll the browser's own speaking state.
-  pollTimer = window.setInterval(() => {
-    if (!speechSynthesis.speaking && !speechSynthesis.pending) {
-      window.clearInterval(pollTimer)
-      pollTimer = undefined
-      speakQueue()
-    }
-  }, POLL_MS)
-  // Fallback: if the state flags stall mid-speech, advance after a generous
-  // estimate of the chunk's speaking time.
-  const maxMs = Math.ceil((chunk.length / (10 * rateFor(settings.rate))) * 1000) + 1500
-  fallbackTimer = window.setTimeout(() => {
-    window.clearInterval(pollTimer)
-    pollTimer = undefined
-    speakQueue()
-  }, maxMs)
+  scheduleEnd = now + t
 }
 
 export function speakReply(text: string): void {
@@ -148,26 +141,33 @@ export function speakReply(text: string): void {
   if (!settings.queue) {
     stopSpeaking()
     chunks.length = Math.min(chunks.length, MAX_WAITING)
-    queue.push(...chunks)
-    speakQueue()
+    scheduleFrom(chunks, true)
     return
   }
-  const overflow = queue.length + chunks.length - MAX_WAITING
-  if (overflow > 0) queue.splice(0, Math.min(overflow, queue.length))
-  queue.push(...chunks)
-  speakQueue()
+  const overflow = scheduled.length + chunks.length - MAX_WAITING
+  if (overflow > 0) {
+    clearTimers()
+    scheduled = scheduled.slice(overflow)
+    scheduleFrom(scheduled.map((s) => s.chunk), true)
+  }
+  scheduleFrom(chunks, false)
 }
 
 /** Skip the item playing now; stops the voice if it was the last. */
 export function skipCurrent(): void {
-  stopTimers()
+  const now = Date.now()
+  clearTimers()
   speechSynthesis.cancel()
-  speakQueue()
+  const remaining = scheduled.filter((s) => s.start > now + 300).map((s) => s.chunk)
+  scheduled = []
+  scheduleEnd = 0
+  scheduleFrom(remaining, true)
 }
 
 export function stopSpeaking(): void {
-  stopTimers()
-  queue = []
+  clearTimers()
+  scheduled = []
+  scheduleEnd = 0
   speechSynthesis.cancel()
 }
 
