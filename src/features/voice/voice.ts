@@ -70,7 +70,7 @@ export function cleanForSpeech(text: string): string {
 /** Split text into sentence-sized chunks — browsers go silent on single
  * utterances longer than ~15 s, so long replies must be spoken piece by piece. */
 function chunkText(text: string): string[] {
-  const sentences = text.match(/[^.!?…]+[.!?…]+\s+|[^.!?…]+$/g) ?? [text]
+  const sentences = text.match(/[^.!?…]+[.!?…]+\s+|[^.!?…]+[.!?…]*$/g) ?? [text]
   const chunks: string[] = []
   for (const sentence of sentences) {
     let rest = sentence.trim()
