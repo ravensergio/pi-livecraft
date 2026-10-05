@@ -91,8 +91,9 @@ function chunkText(text: string): string[] {
     let rest = sentence.trim()
     while (rest.length > 200) {
       const cut = rest.lastIndexOf(' ', 200)
-      chunks.push(rest.slice(0, cut < 60 ? 200 : cut))
-      rest = rest.slice(cut + 1)
+      const end = cut < 60 ? 200 : cut
+      chunks.push(rest.slice(0, end))
+      rest = rest.slice(end + 1)
     }
     if (rest) chunks.push(rest)
   }
