@@ -121,9 +121,13 @@ function scheduleFrom(items: string[], fromNow: boolean): void {
   const now = Date.now()
   let t = fromNow ? 0 : Math.max(0, scheduleEnd - now)
   for (const chunk of items) {
-    scheduled.push({ chunk, start: now + t })
-    console.log('[voice] chunk scheduled:', JSON.stringify(chunk), 'in', t, 'ms')
-    timers.push(window.setTimeout(() => speechSynthesis.speak(makeUtterance(chunk)), t))
+    const entry = { chunk, start: now + t }
+    scheduled.push(entry)
+    timers.push(window.setTimeout(() => {
+      speechSynthesis.speak(makeUtterance(chunk))
+      const i = scheduled.indexOf(entry)
+      if (i >= 0) scheduled.splice(i, 1)
+    }, t))
     t += estMs(chunk) + GAP_MS
   }
   scheduleEnd = now + t
