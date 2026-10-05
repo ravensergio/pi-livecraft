@@ -37,6 +37,8 @@ import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { sessionActivity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
 import { visibleText, type ReasoningMode } from './features/conversation/MessageCard.tsx'
+import { assistantMessageInEvent } from '../shared/assistant-message-stream.ts'
+import { speakReply } from './features/voice/voice.ts'
 import { useConversationRuntime } from './features/conversation/useConversationRuntime.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import {
@@ -687,7 +689,16 @@ function App() {
   // Pi event stream
   /** Routes a live or replayed Pi event through cross-feature effects before the conversation runtime. */
   const handleManagerPiEvent = useCallback(
-    (sessionId: string, event: JsonObject, sequence?: number): void => {
+    (sessionId: string, event: JsonObject, sequence?: number, live = false): void => {
+      if (live && event.type === 'message_end') {
+        const message = assistantMessageInEvent(event)
+        const parts = message && Array.isArray(message.content) ? message.content : []
+        const text = parts
+          .filter((part) => isObject(part) && part.type === 'text' && typeof part.text === 'string')
+          .map((part) => part.text)
+          .join('\n')
+        speakReply(text)
+      }
       if (event.type === 'session_info_changed') {
         const name = typeof event.name === 'string' && event.name.trim()
           ? event.name.trim()
@@ -837,6 +848,7 @@ function App() {
           managerEvent.sessionId,
           managerEvent.data,
           managerEvent.sequence,
+          true,
         )
     }, () => {
       resetEventSequence()

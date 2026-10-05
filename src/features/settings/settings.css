@@ -509,3 +509,19 @@
   border-color: var(--danger);
   color: var(--danger);
 }
+
+.voice-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.voice-row select,
+.voice-row input[type="range"] {
+  min-width: 200px;
+}
+
+.voice-row input[type="checkbox"] {
+  accent-color: var(--accent);
+}

@@ -10,6 +10,7 @@ import {
   type FormEvent,
 } from 'react'
 import type { ReasoningMode } from '../conversation/MessageCard.tsx'
+import { VoiceToggle } from '../voice/VoiceToggle.tsx'
 import { Tooltip } from '../../components/Tooltip.tsx'
 import type {
   JsonObject,
@@ -759,6 +760,7 @@ export const Composer = memo(function Composer({
                   : 'thinking · hidden'}
               </button>
             )}
+            <VoiceToggle />
           </div>
           <div className='composer-primary-actions'>
             <span className='composer-stop-slot'>
