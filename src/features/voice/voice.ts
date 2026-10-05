@@ -101,11 +101,11 @@ function makeUtterance(text: string): SpeechSynthesisUtterance {
 }
 
 const MAX_WAITING = 12 // chunks
-const GAP_MS = 120 // pause between chunks
+const GAP_MS = 60 // pause between chunks
 
 /** Estimated speaking time of a chunk at the current rate. */
 function estMs(text: string): number {
-  return Math.ceil((text.length / (15 * rateFor(settings.rate))) * 1000) + 150
+  return Math.ceil((text.length / (20 * rateFor(settings.rate))) * 1000) + 60
 }
 
 let scheduled: { chunk: string; start: number }[] = []
