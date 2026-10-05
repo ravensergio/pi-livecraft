@@ -1,6 +1,10 @@
 // Browser TTS: speaks assistant replies with the device's own voices via
 // speechSynthesis. Settings persist per device in localStorage, so every PC
 // you use keeps its own voice, speed, and volume.
+//
+// Queue design: each reply is split into sentence chunks; every chunk's
+// speak() is scheduled upfront with a timer. The browser plays queued
+// speak() calls in order — no end-event is needed to advance the queue.
 
 const LS_KEY = 'pi-livecraft.voice'
 
@@ -29,10 +33,6 @@ function load(): VoiceSettings {
 }
 
 let settings = load()
-let waiting: string[] = []
-let speakingNow = false
-let token = 0 // guards onend/onerror of cancelled utterances
-let keepAlive: number | undefined
 const listeners = new Set<() => void>()
 
 export function getVoiceSettings(): VoiceSettings {
@@ -67,23 +67,8 @@ export function cleanForSpeech(text: string): string {
     .trim()
 }
 
-function rateFor(rate: number): number {
-  return Math.min(2, Math.max(0.7, 1 + rate * 0.06))
-}
-
-function applyVoice(utterance: SpeechSynthesisUtterance, s: VoiceSettings): void {
-  const chosen = s.voiceName
-    ? speechSynthesis.getVoices().find((v) => v.name === s.voiceName)
-    : undefined
-  if (chosen) utterance.voice = chosen
-  utterance.rate = rateFor(s.rate)
-  utterance.volume = s.volume / 100
-}
-
-const MAX_WAITING = 12 // chunks, not replies
-
-/** Split text into sentence-sized chunks — Chromium browsers go silent on
- * single utterances longer than ~15 s, so long replies must be spoken piece by piece. */
+/** Split text into sentence-sized chunks — browsers go silent on single
+ * utterances longer than ~15 s, so long replies must be spoken piece by piece. */
 function chunkText(text: string): string[] {
   const sentences = text.match(/[^.!?…]+[.!?…]+\s+|[^.!?…]+$/g) ?? [text]
   const chunks: string[] = []
@@ -100,36 +85,48 @@ function chunkText(text: string): string[] {
   return chunks.filter(Boolean)
 }
 
-function pump(): void {
-  if (speakingNow) return
-  const text = waiting.shift()
-  if (text) console.log('[voice] chunk speak:', JSON.stringify(text))
-  if (!text) return
-  const current = ++token
+function rateFor(rate: number): number {
+  return Math.min(2, Math.max(0.7, 1 + rate * 0.06))
+}
+
+function makeUtterance(text: string): SpeechSynthesisUtterance {
   const utterance = new SpeechSynthesisUtterance(text)
-  applyVoice(utterance, settings)
-  speakingNow = true
-  utterance.onend = () => {
-    if (current !== token) return
-    speakingNow = false
-    pump()
+  const chosen = settings.voiceName
+    ? speechSynthesis.getVoices().find((v) => v.name === settings.voiceName)
+    : undefined
+  if (chosen) utterance.voice = chosen
+  utterance.rate = rateFor(settings.rate)
+  utterance.volume = settings.volume / 100
+  return utterance
+}
+
+const MAX_WAITING = 12 // chunks
+const GAP_MS = 120 // pause between chunks
+
+/** Estimated speaking time of a chunk at the current rate. */
+function estMs(text: string): number {
+  return Math.ceil((text.length / (15 * rateFor(settings.rate))) * 1000) + 150
+}
+
+let scheduled: { chunk: string; start: number }[] = []
+let timers: number[] = []
+let scheduleEnd = 0
+
+function clearTimers(): void {
+  for (const id of timers) window.clearTimeout(id)
+  timers = []
+}
+
+function scheduleFrom(items: string[], fromNow: boolean): void {
+  const now = Date.now()
+  let t = fromNow ? 0 : Math.max(0, scheduleEnd - now)
+  for (const chunk of items) {
+    scheduled.push({ chunk, start: now + t })
+    console.log('[voice] chunk scheduled:', JSON.stringify(chunk), 'in', t, 'ms')
+    timers.push(window.setTimeout(() => speechSynthesis.speak(makeUtterance(chunk)), t))
+    t += estMs(chunk) + GAP_MS
   }
-  utterance.onerror = () => {
-    if (current !== token) return
-    speakingNow = false
-    pump()
-  }
-  // Chrome: cancel() + speak() in the same tick can leave the queue dead.
-  window.setTimeout(() => speechSynthesis.speak(utterance), 100)
-  // Fallback: if onend is swallowed, the queue still advances after the
-  // chunk's estimated speaking time.
-  const ms = Math.ceil((text.length / (15 * rateFor(settings.rate))) * 1000) + 800
-  window.setTimeout(() => {
-    if (current === token) {
-      speakingNow = false
-      pump()
-    }
-  }, ms)
+  scheduleEnd = now + t
 }
 
 export function speakReply(text: string): void {
@@ -137,43 +134,47 @@ export function speakReply(text: string): void {
   const clean = cleanForSpeech(text)
   if (!clean) return
   const chunks = chunkText(clean)
-  if (settings.queue) {
-    if (waiting.length + chunks.length > MAX_WAITING)
-      console.log(
-        '[voice] queue drop:',
-        JSON.stringify(waiting[0]),
-      )
-    while (waiting.length + chunks.length > MAX_WAITING) waiting.shift()
-  } else {
+  if (!settings.queue) {
     stopSpeaking()
     chunks.length = Math.min(chunks.length, MAX_WAITING)
+    scheduleFrom(chunks, true)
+    return
   }
-  waiting.push(...chunks)
-  pump()
+  const overflow = scheduled.length + chunks.length - MAX_WAITING
+  if (overflow > 0) {
+    clearTimers()
+    scheduled = scheduled.slice(overflow)
+    scheduleFrom(scheduled.map((s) => s.chunk), true)
+  }
+  scheduleFrom(chunks, false)
 }
 
 /** Skip the item playing now; stops the voice if it was the last. */
 export function skipCurrent(): void {
-  token++
-  speakingNow = false
-  window.clearInterval(keepAlive)
-  console.log('[voice] cancel (skip)')
+  const now = Date.now()
+  clearTimers()
   speechSynthesis.cancel()
-  pump()
+  const remaining = scheduled.filter((s) => s.start > now + 300).map((s) => s.chunk)
+  scheduled = []
+  scheduleEnd = 0
+  scheduleFrom(remaining, true)
 }
 
 export function stopSpeaking(): void {
-  token++
-  waiting = []
-  speakingNow = false
-  window.clearInterval(keepAlive)
-  console.log('[voice] cancel (stop)')
+  clearTimers()
+  scheduled = []
+  scheduleEnd = 0
   speechSynthesis.cancel()
 }
 
 export function speakSample(): void {
   const utterance = new SpeechSynthesisUtterance('This is the voice in your browser.')
-  applyVoice(utterance, settings)
+  const chosen = settings.voiceName
+    ? speechSynthesis.getVoices().find((v) => v.name === settings.voiceName)
+    : undefined
+  if (chosen) utterance.voice = chosen
+  utterance.rate = rateFor(settings.rate)
+  utterance.volume = settings.volume / 100
   speechSynthesis.cancel()
   window.setTimeout(() => speechSynthesis.speak(utterance), 0)
 }
