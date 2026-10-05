@@ -103,6 +103,7 @@ function chunkText(text: string): string[] {
 function pump(): void {
   if (speakingNow) return
   const text = waiting.shift()
+  console.log('[voice] chunk speak:', JSON.stringify(text))
   if (!text) return
   const current = ++token
   const utterance = new SpeechSynthesisUtterance(text)
@@ -128,6 +129,11 @@ export function speakReply(text: string): void {
   if (!clean) return
   const chunks = chunkText(clean)
   if (settings.queue) {
+    if (waiting.length + chunks.length > MAX_WAITING)
+      console.log(
+        '[voice] queue drop:',
+        JSON.stringify(waiting[0]),
+      )
     while (waiting.length + chunks.length > MAX_WAITING) waiting.shift()
   } else {
     stopSpeaking()
@@ -142,6 +148,7 @@ export function skipCurrent(): void {
   token++
   speakingNow = false
   window.clearInterval(keepAlive)
+  console.log('[voice] cancel (skip)')
   speechSynthesis.cancel()
   pump()
 }
@@ -151,6 +158,7 @@ export function stopSpeaking(): void {
   waiting = []
   speakingNow = false
   window.clearInterval(keepAlive)
+  console.log('[voice] cancel (stop)')
   speechSynthesis.cancel()
 }
 
