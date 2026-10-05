@@ -103,7 +103,7 @@ function chunkText(text: string): string[] {
 function pump(): void {
   if (speakingNow) return
   const text = waiting.shift()
-  console.log('[voice] chunk speak:', JSON.stringify(text))
+  if (text) console.log('[voice] chunk speak:', JSON.stringify(text))
   if (!text) return
   const current = ++token
   const utterance = new SpeechSynthesisUtterance(text)
@@ -120,7 +120,7 @@ function pump(): void {
     pump()
   }
   // Chrome: cancel() + speak() in the same tick can leave the queue dead.
-  window.setTimeout(() => speechSynthesis.speak(utterance), 0)
+  window.setTimeout(() => speechSynthesis.speak(utterance), 100)
 }
 
 export function speakReply(text: string): void {
