@@ -68,7 +68,7 @@ export function cleanForSpeech(text: string): string {
 }
 
 function rateFor(rate: number): number {
-  return Math.min(2, Math.max(0.4, 1 + rate * 0.06))
+  return Math.min(2, Math.max(0.7, 1 + rate * 0.06))
 }
 
 function applyVoice(utterance: SpeechSynthesisUtterance, s: VoiceSettings): void {
@@ -89,9 +89,9 @@ function chunkText(text: string): string[] {
   const chunks: string[] = []
   for (const sentence of sentences) {
     let rest = sentence.trim()
-    while (rest.length > 200) {
-      const cut = rest.lastIndexOf(' ', 200)
-      const end = cut < 60 ? 200 : cut
+    while (rest.length > 120) {
+      const cut = rest.lastIndexOf(' ', 120)
+      const end = cut < 60 ? 120 : cut
       chunks.push(rest.slice(0, end))
       rest = rest.slice(end + 1)
     }
@@ -120,14 +120,6 @@ function pump(): void {
   }
   // Chrome: cancel() + speak() in the same tick can leave the queue dead.
   window.setTimeout(() => speechSynthesis.speak(utterance), 0)
-  // Chrome pauses long utterances after ~15 s — keep it alive.
-  window.clearInterval(keepAlive)
-  keepAlive = window.setInterval(() => {
-    if (speechSynthesis.speaking) {
-      speechSynthesis.pause()
-      speechSynthesis.resume()
-    }
-  }, 10000)
 }
 
 export function speakReply(text: string): void {
