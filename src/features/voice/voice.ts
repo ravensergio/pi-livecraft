@@ -121,6 +121,15 @@ function pump(): void {
   }
   // Chrome: cancel() + speak() in the same tick can leave the queue dead.
   window.setTimeout(() => speechSynthesis.speak(utterance), 100)
+  // Fallback: if onend is swallowed, the queue still advances after the
+  // chunk's estimated speaking time.
+  const ms = Math.ceil((text.length / (15 * rateFor(settings.rate))) * 1000) + 800
+  window.setTimeout(() => {
+    if (current === token) {
+      speakingNow = false
+      pump()
+    }
+  }, ms)
 }
 
 export function speakReply(text: string): void {
