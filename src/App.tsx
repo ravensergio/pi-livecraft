@@ -690,7 +690,7 @@ function App() {
   /** Routes a live or replayed Pi event through cross-feature effects before the conversation runtime. */
   const handleManagerPiEvent = useCallback(
     (sessionId: string, event: JsonObject, sequence?: number, live = false): void => {
-      if (live && event.type === 'message_end') {
+      if (live && sessionId === selectedIdRef.current && event.type === 'message_end') {
         const message = assistantMessageInEvent(event)
         const parts = message && Array.isArray(message.content) ? message.content : []
         const text = parts
