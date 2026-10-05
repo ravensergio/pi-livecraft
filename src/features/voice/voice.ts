@@ -100,7 +100,7 @@ function makeUtterance(text: string): SpeechSynthesisUtterance {
   return utterance
 }
 
-const MAX_WAITING = 12 // chunks
+const MAX_WAITING = 24 // chunks
 const GAP_MS = 0 // chunks queue back to back
 
 /** Estimated speaking time of a chunk at the current rate. */
