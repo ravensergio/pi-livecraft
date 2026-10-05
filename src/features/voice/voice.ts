@@ -118,7 +118,8 @@ function pump(): void {
     speakingNow = false
     pump()
   }
-  speechSynthesis.speak(utterance)
+  // Chrome: cancel() + speak() in the same tick can leave the queue dead.
+  window.setTimeout(() => speechSynthesis.speak(utterance), 0)
   // Chrome pauses long utterances after ~15 s — keep it alive.
   window.clearInterval(keepAlive)
   keepAlive = window.setInterval(() => {
@@ -165,5 +166,5 @@ export function speakSample(): void {
   const utterance = new SpeechSynthesisUtterance('This is the voice in your browser.')
   applyVoice(utterance, settings)
   speechSynthesis.cancel()
-  speechSynthesis.speak(utterance)
+  window.setTimeout(() => speechSynthesis.speak(utterance), 0)
 }
