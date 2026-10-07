@@ -1,6 +1,7 @@
 import { createReadStream } from 'node:fs'
-import { readdir, realpath, stat } from 'node:fs/promises'
-import { dirname, extname, resolve, sep } from 'node:path'
+import { appendFile, readdir, realpath, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { dirname, extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManagerClient } from './manager-client.ts'
@@ -40,6 +41,25 @@ import type {
   SessionSnapshot,
 } from '../shared/types.ts'
 import { isObject } from '../shared/is-object.ts'
+
+// Crashes used to vanish into the dev terminal. Log them to a file so the
+// next one is diagnosable; exit on uncaught exceptions (state may be
+// inconsistent) so node --watch restarts clean. Unhandled rejections are
+// often harmless (aborted client requests) — log, stay up.
+const crashLogPath = join(tmpdir(), 'pi-livecraft-backend-crash.log')
+function logCrash(kind: string, error: unknown): void {
+  const detail = error instanceof Error ? (error.stack ?? error.message) : String(error)
+  void appendFile(crashLogPath, `[${new Date().toISOString()}] ${kind}: ${detail}\n`).catch(() =>
+    undefined
+  )
+}
+process.on('uncaughtException', (error) => {
+  logCrash('uncaughtException', error)
+  process.exit(1)
+})
+process.on('unhandledRejection', (reason) => {
+  logCrash('unhandledRejection', reason)
+})
 
 const host = '127.0.0.1'
 const port = readPort('PI_LIVECRAFT_BACKEND_PORT', 43_121)
@@ -81,6 +101,10 @@ managerRuntime.start()
 manager.start()
 
 const server = createServer((request, response) => {
+  // A client that died mid-response (AFK, navigation, OS idle reset) makes
+  // writes fail with EPIPE; without a listener the 'error' event crashes the
+  // whole backend. Client-side disconnects are not server faults.
+  response.on('error', () => undefined)
   void route(request, response).catch((error) => {
     const status = error instanceof HttpError ? error.status : 500
     if (!response.headersSent) sendJson(response, status, { error: errorMessage(error) })
