@@ -21,6 +21,40 @@ async function npmPiLayout(): Promise<{ root: string; bin: string; cli: string }
   return { root, bin, cli }
 }
 
+async function managedPiLayout(): Promise<{ root: string; bin: string; cli: string }> {
+  const root = await mkdtemp(join(tmpdir(), 'pi launcher managed '))
+  const bin = join(root, 'bin')
+  const packageRoot = join(
+    root,
+    'install',
+    'releases',
+    '1.0.0',
+    'node_modules',
+    '@earendil-works',
+    'pi-coding-agent',
+  )
+  const cli = join(packageRoot, 'dist', 'bundle', 'cli.js')
+  await mkdir(join(packageRoot, 'dist', 'bundle'), { recursive: true })
+  await mkdir(bin, { recursive: true })
+  await writeFile(join(bin, 'pi.cmd'), '@echo managed shim')
+  await writeFile(join(bin, 'pi-launcher.js'), 'throw new Error("must not run")')
+  await writeFile(join(root, 'install', 'current-version'), '1.0.0\n')
+  await writeFile(
+    join(packageRoot, 'package.json'),
+    JSON.stringify({ bin: { pi: 'dist/bundle/cli.js' } }),
+  )
+  return { root, bin, cli }
+}
+
+test('resolves the managed install release behind pi.cmd', async (t) => {
+  const { root, bin, cli } = await managedPiLayout()
+  t.after(() => rm(root, { force: true, recursive: true }))
+  await writeFile(cli, '')
+  const invocation = resolvePiLauncher('win32', { PATH: bin }, ';')
+  assert.equal(invocation.command, process.execPath)
+  assert.equal(invocation.argsPrefix[0], cli)
+})
+
 test('resolves the package CLI behind pi.cmd without executing it', async (t) => {
   const { root, bin, cli } = await npmPiLayout()
   t.after(() => rm(root, { force: true, recursive: true }))
