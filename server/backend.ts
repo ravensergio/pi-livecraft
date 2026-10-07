@@ -4,6 +4,7 @@ import { dirname, extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManagerClient } from './manager-client.ts'
+import { broadcastFrame } from './sse-broadcast.ts'
 import { ManagerRuntimeMonitor } from './manager-runtime-monitor.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import {
@@ -131,6 +132,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
         })
       }\n\n`,
     )
+    response.on('error', () => eventClients.delete(response))
     eventClients.add(response)
     request.on('close', () => eventClients.delete(response))
     return
@@ -629,8 +631,7 @@ async function serveStatic(
 }
 
 function broadcast(event: unknown): void {
-  const frame = `data: ${JSON.stringify(event)}\n\n`
-  for (const client of eventClients) client.write(frame)
+  broadcastFrame(eventClients, `data: ${JSON.stringify(event)}\n\n`)
 }
 
 function sendJson(response: ServerResponse, status: number, value: unknown): void {
