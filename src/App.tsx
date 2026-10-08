@@ -21,10 +21,12 @@ import {
   subscribeManagerEvents,
   upgradeSession as requestUpgradeSession,
 } from './api.ts'
+import { createEventCoalescer } from './event-coalescer.ts'
 import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type {
   GitSnapshot,
   JsonObject,
+  ManagerEvent,
   ManagerRuntimeStatus,
   QuotaSnapshot,
   SessionSummary,
@@ -823,8 +825,8 @@ function App() {
   )
   replayPiEventRef.current = handleManagerPiEvent
 
-  useEffect(() =>
-    subscribeManagerEvents((managerEvent) => {
+  useEffect(() => {
+    const handleManagerEvent = (managerEvent: ManagerEvent) => {
       if (
         managerEvent.event === 'manager_connected' || managerEvent.event === 'manager_disconnected'
       ) {
@@ -850,12 +852,37 @@ function App() {
           managerEvent.sequence,
           true,
         )
-    }, () => {
-      resetEventSequence()
-      setPiConnection('connecting')
-      clearActivity()
-      showToast('error', 'Connection to backend lost; retrying.')
-    }), [
+    }
+    // Coalesce SSE bursts into one delivery per animation frame — one render
+    // per event is what blocks the main thread during inference.
+    const coalescer = createEventCoalescer<ManagerEvent>(
+      (events) => {
+        for (const event of events) handleManagerEvent(event)
+      },
+      (callback) => requestAnimationFrame(callback),
+    )
+    const unsubscribe = subscribeManagerEvents(
+      (managerEvent) => {
+        // Hidden tabs don't run rAF; deliver directly so the buffer cannot
+        // grow unbounded during a long inference.
+        if (document.hidden) {
+          handleManagerEvent(managerEvent)
+          return
+        }
+        coalescer.push(managerEvent)
+      },
+      () => {
+        resetEventSequence()
+        setPiConnection('connecting')
+        clearActivity()
+        showToast('error', 'Connection to backend lost; retrying.')
+      },
+    )
+    return () => {
+      unsubscribe()
+      coalescer.dispose()
+    }
+  }, [
     clearActivity,
     clearManagerUnavailableToasts,
     handleManagerPiEvent,
