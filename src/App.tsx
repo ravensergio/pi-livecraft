@@ -751,12 +751,18 @@ function App() {
         const key = typeof event.statusKey === 'string' ? event.statusKey : ''
         if (key && key !== 'agent' && key !== 'pi-livecraft.quotas') {
           setExtensionStatuses((current) => {
-            const perSession = { ...(current[sessionId] ?? {}) }
             // Extension status text is ANSI-themed for terminals — keep the color intent,
             // strip the codes from the displayed text.
             const raw = typeof event.statusText === 'string' ? event.statusText : ''
             const text = raw.replace(/\u001b\[[0-9;]*m/g, '').trim()
-            if (text) perSession[key] = { text, tone: toneFromAnsi(raw) }
+            const tone = toneFromAnsi(raw)
+            const existing = current[sessionId]?.[key]
+            // Extensions like telegram+ re-emit the same status every heartbeat —
+            // an unchanged chip is not a state change.
+            if (text ? existing?.text === text && existing?.tone === tone : !existing)
+              return current
+            const perSession = { ...(current[sessionId] ?? {}) }
+            if (text) perSession[key] = { text, tone }
             else delete perSession[key]
             return { ...current, [sessionId]: perSession }
           })
