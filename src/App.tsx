@@ -902,6 +902,15 @@ function App() {
   // Selected session and loading state
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const selectedSessionId = selectedSession?.id
+  // Stable references for the memoized Composer — Object.values() and an inline
+  // arrow would break its memo and re-render it on every stream batch.
+  const composerExtensionStatuses = useMemo(
+    () => (selectedSession ? Object.values(extensionStatuses[selectedSession.id] ?? {}) : []),
+    [extensionStatuses, selectedSession],
+  )
+  const requestComposerAgentOptions = useCallback(() => {
+    if (selectedId) fetchAgentOptions(selectedId)
+  }, [fetchAgentOptions, selectedId])
   const selectedSessionStatus = selectedSession?.status
   const sessionIsLoading = Boolean(selectedSessionId && snapshotSessionId !== selectedSessionId)
 
@@ -1463,7 +1472,7 @@ function App() {
                       agentOptionsLoading={Boolean(agentOptionsLoading[selectedSession.id])}
                       selectedAgent={selectedSession.activeAgent ?? ''}
                       onAgentChange={handleComposerAgentChange}
-                      onRequestAgentOptions={() => fetchAgentOptions(selectedSession.id)}
+                      onRequestAgentOptions={requestComposerAgentOptions}
                       onCommand={handleComposerCommand}
                       commands={snapshot.commands}
                       agentLoading={snapshotSessionId !== selectedSession.id}
@@ -1478,7 +1487,7 @@ function App() {
                       compacting={displayedActivity?.kind === 'compacting'}
                       reasoningMode={reasoningMode}
                       onReasoningModeChange={cycleReasoningMode}
-                      extensionStatuses={Object.values(extensionStatuses[selectedSession.id] ?? {})}
+                      extensionStatuses={composerExtensionStatuses}
                       messageHistory={messageHistory}
                       onSend={handleComposerSend}
                       onAbort={handleComposerAbort}
