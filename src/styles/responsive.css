@@ -266,7 +266,9 @@
     border-radius: 10px;
     font-size: 22px;
   }
-  .brand small {
+  /* Brand: logo only — the text block ("Pi Livecraft" / "Local workspace")
+     gives its width to the New buttons. */
+  .brand > div {
     display: none;
   }
   .new-session {
