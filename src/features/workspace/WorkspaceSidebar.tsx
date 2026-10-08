@@ -21,6 +21,11 @@ import {
 } from './sidebar-sessions.ts'
 import { SessionDeleteDialog } from './SessionDeleteDialog.tsx'
 import { SessionRenameDialog } from './SessionRenameDialog.tsx'
+import {
+  SessionPickerDialog,
+  type SessionPickerGroup,
+  type SessionPickerRow,
+} from './SessionPickerDialog.tsx'
 import { maxWorkspaceSidebarWidth, minWorkspaceSidebarWidth } from './workspace-sidebar.ts'
 
 interface ContextMenuState {
@@ -92,6 +97,7 @@ export function WorkspaceSidebar({
   const [contextMenuPosition, setContextMenuPosition] = useState({ left: 0, top: 0 })
   const [renameTarget, setRenameTarget] = useState<SessionActionTarget | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<SessionActionTarget | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const selectedSessionRef = useRef<HTMLButtonElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const contextMenuTriggerRef = useRef<HTMLButtonElement>(null)
@@ -118,6 +124,75 @@ export function WorkspaceSidebar({
     () => otherWorkspacePinnedSessions(pinnedSessions, sessions, workspacePath),
     [pinnedSessions, sessions, workspacePath],
   )
+
+  // Full session list for the mobile "All" button: the strip only shows a
+  // few sessions, the picker reaches every one of them.
+  const pickerGroups = useMemo<SessionPickerGroup[]>(() => {
+    const groups: SessionPickerGroup[] = []
+    if (visibleSessions.length > 0) {
+      groups.push({
+        key: workspacePath,
+        title: 'This workspace',
+        rows: visibleSessions.map((recent) => {
+          const active = sessions.find(
+            (session) => session.sessionPath === recent.sessionPath && session.status !== 'exited',
+          )
+          return {
+            key: recent.sessionPath,
+            name: recent.name,
+            selected: active?.id === selectedId,
+            onPick: () => {
+              if (active) {
+                onSelectSession(active.id)
+                return
+              }
+              void onOpenSession(recent).catch(onError)
+            },
+          }
+        }),
+      })
+    }
+    const byCwd = new Map<string, SessionPickerRow[]>()
+    const pushRow = (cwd: string, row: SessionPickerRow): void => {
+      const rows = byCwd.get(cwd)
+      if (rows) rows.push(row)
+      else byCwd.set(cwd, [row])
+    }
+    for (const session of otherSessions) {
+      pushRow(session.cwd, {
+        key: session.id,
+        name: session.name,
+        detail: session.cwd,
+        selected: session.id === selectedId,
+        onPick: () => onSelectOtherWorkspaceSession(session),
+      })
+    }
+    for (const session of otherPinnedSessions) {
+      if (otherSessions.some((active) => active.sessionPath === session.sessionPath)) continue
+      pushRow(session.cwd, {
+        key: session.sessionPath,
+        name: session.name,
+        detail: session.cwd,
+        selected: false,
+        onPick: () => openPinnedSession(session),
+      })
+    }
+    for (const [cwd, rows] of byCwd) {
+      groups.push({ key: `other-${cwd}`, title: cwd, rows })
+    }
+    return groups
+  }, [
+    otherPinnedSessions,
+    otherSessions,
+    onError,
+    onOpenSession,
+    onSelectOtherWorkspaceSession,
+    onSelectSession,
+    selectedId,
+    sessions,
+    visibleSessions,
+    workspacePath,
+  ])
 
   useEffect(() => {
     selectedSessionRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
@@ -336,7 +411,11 @@ export function WorkspaceSidebar({
           </button>
         </Tooltip>
       </div>
-      <NewSessionButton onCreate={onCreate} onError={onError} />
+      <NewSessionButton
+        onCreate={onCreate}
+        onError={onError}
+        onShowAll={() => setPickerOpen(true)}
+      />
       <nav className='session-list' aria-label='Recent Pi sessions'>
         {isRefreshing && visibleSessions.length === 0 && (
           <p className='session-list-loading' role='status'>Loading sessions…</p>
@@ -568,6 +647,12 @@ export function WorkspaceSidebar({
           sessionPath={deleteTarget.sessionPath}
         />
       )}
+      {pickerOpen && (
+        <SessionPickerDialog
+          groups={pickerGroups}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </aside>
   )
 }
@@ -577,7 +662,12 @@ function NewSessionButton(
   {
     onCreate,
     onError,
-  }: { onCreate: (temporary: boolean) => Promise<void>; onError: (cause: unknown) => void },
+    onShowAll,
+  }: {
+    onCreate: (temporary: boolean) => Promise<void>
+    onError: (cause: unknown) => void
+    onShowAll?: () => void
+  },
 ) {
   const [busy, setBusy] = useState(false)
 
@@ -617,6 +707,17 @@ function NewSessionButton(
           {busy ? 'Starting…' : '＋ New Temp'}
         </button>
       </Tooltip>
+      {onShowAll && (
+        <button
+          aria-label='All sessions'
+          className='all-sessions-button'
+          onClick={onShowAll}
+          title='All sessions'
+          type='button'
+        >
+          All
+        </button>
+      )}
     </div>
   )
 }

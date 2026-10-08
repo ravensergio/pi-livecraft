@@ -792,3 +792,56 @@
     transition: none;
   }
 }
+/* Mobile "All sessions" button (hidden on desktop; shown <=900px in responsive.css). */
+.all-sessions-button {
+  display: none;
+}
+
+/* Session picker dialog — full session list for small screens. */
+.session-picker-backdrop .session-picker {
+  width: min(480px, 100%);
+  max-height: min(70dvh, calc(100dvh - var(--kb, 0px) - 40px));
+}
+.session-picker h3 {
+  margin: 16px 0 6px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.session-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+.session-picker-item:hover {
+  background: var(--accent-soft);
+}
+.session-picker-item.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.session-picker-item strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.session-picker-item small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+}
+.session-picker-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
