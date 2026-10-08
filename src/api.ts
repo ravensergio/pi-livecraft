@@ -299,6 +299,29 @@ export async function sendPiCommand(sessionId: string, command: JsonObject): Pro
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = init?.method ?? 'GET'
+  // The dev backend restarts when its sources change, and a request landing in
+  // that window gets a 502 from the proxy. Retry once for read-only calls and
+  // session open/create (open is idempotent server-side) — never for commands
+  // that could run twice (prompts, git operations).
+  const retryable = method === 'GET' || path === '/api/sessions'
+  try {
+    return await attemptRequest<T>(path, init)
+  } catch (error) {
+    if (!retryable || !isTransientRequestError(error)) throw error
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    return attemptRequest<T>(path, init)
+  }
+}
+
+/** A 502/503 from the proxy, or a fetch that never reached a live server. */
+function isTransientRequestError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const message = error.message
+  return message.includes('(502)') || message.includes('(503)') || message === 'Failed to fetch'
+}
+
+async function attemptRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: typeof init?.body === 'string'
