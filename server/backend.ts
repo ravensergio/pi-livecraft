@@ -105,6 +105,16 @@ const server = createServer((request, response) => {
   // writes fail with EPIPE; without a listener the 'error' event crashes the
   // whole backend. Client-side disconnects are not server faults.
   response.on('error', () => undefined)
+  // Catches the rare 502s: log any request the backend itself finds slow or
+  // failed, so a proxy-side 502 can be correlated with backend behavior.
+  const startedAt = Date.now()
+  response.on('finish', () => {
+    const durationMs = Date.now() - startedAt
+    if (durationMs > 3000 || response.statusCode >= 500)
+      console.log(
+        `[slow] ${request.method} ${request.url} -> ${response.statusCode} in ${durationMs}ms`,
+      )
+  })
   void route(request, response).catch((error) => {
     const status = error instanceof HttpError ? error.status : 500
     if (!response.headersSent) sendJson(response, status, { error: errorMessage(error) })
