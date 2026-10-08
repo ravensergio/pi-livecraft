@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, type ReactNode } from 'react'
+import { memo, useDeferredValue, useEffect, useState, type ReactNode } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { isObject } from '../../../shared/is-object.ts'
 import { CopyButton } from './CopyButton.tsx'
@@ -45,12 +45,15 @@ const DefaultMessageCard = memo(
       reasoningMode: ReasoningMode
     },
   ) {
-    const role = String(message.role)
-    const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
+    // Stream batches arrive faster than the markdown can be parsed — deferring the
+    // message lets this card render at a sustainable rate instead of every batch.
+    const displayed = useDeferredValue(message)
+    const role = String(displayed.role)
+    const timestamp = typeof displayed.timestamp === 'number' ? new Date(displayed.timestamp) : null
     const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
-    const text = visibleText(message.content ?? message.output)
-    const forkEntryId = role === 'user' && typeof message.forkEntryId === 'string'
-      ? message.forkEntryId
+    const text = visibleText(displayed.content ?? displayed.output)
+    const forkEntryId = role === 'user' && typeof displayed.forkEntryId === 'string'
+      ? displayed.forkEntryId
       : undefined
     return (
       <article className={`message ${role}`}>
@@ -62,8 +65,8 @@ const DefaultMessageCard = memo(
         )}
         <div className='content'>
           {renderContent(
-            message.content ?? message.output,
-            message.role,
+            displayed.content ?? displayed.output,
+            displayed.role,
             onError,
             live,
             reasoningMode,
