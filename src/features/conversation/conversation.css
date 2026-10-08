@@ -1,5 +1,7 @@
 .conversation {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
@@ -8,7 +10,10 @@
   scrollbar-gutter: stable;
 }
 .conversation-content {
+  /* Chat pattern: when the content is shorter than the viewport (fresh or
+     compacted sessions) it hugs the composer instead of floating at the top. */
   min-width: 0;
+  margin-top: auto;
 }
 /* The last message's 18px bottom margin would double up with the container padding.
    Trim it so the gap above the composer stays even. */
