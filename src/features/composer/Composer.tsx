@@ -633,6 +633,9 @@ export const Composer = memo(function Composer({
             }
           }
           if (event.key === 'Enter' && !event.shiftKey) {
+            // Touch keyboards have no Shift+Enter: Enter inserts a newline
+            // and the send button sends — the standard chat-app pattern.
+            if (window.matchMedia('(pointer: coarse)').matches) return
             event.preventDefault()
             event.currentTarget.form?.requestSubmit()
           }
