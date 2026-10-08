@@ -12,7 +12,7 @@
   width: min(640px, calc(100vw - 32px));
   display: flex;
   flex-direction: column;
-  height: min(720px, calc(100vh - 48px));
+  height: min(720px, calc(100dvh - 48px));
   border: 1px solid var(--line-strong);
   border-radius: 12px;
   background: var(--surface);
@@ -424,7 +424,7 @@
 }
 @media (max-width: 520px) {
   .settings-panel {
-    height: calc(100vh - 32px);
+    height: calc(100dvh - 32px);
   }
   .theme-toolbar {
     flex-wrap: wrap;

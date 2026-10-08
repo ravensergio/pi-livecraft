@@ -248,3 +248,59 @@
     padding-left: 4px;
   }
 }
+/* ===== Mobile =====
+ * Touch-device basics. --kb (keyboard height in px) is set on :root by
+ * src/keyboard-inset.ts; it is 0/absent on desktop and when no keyboard is open.
+ */
+
+/* iOS Safari zooms the page when focusing an input under 16px. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Touch targets reach ~40px on devices without hover. */
+@media (hover: none) {
+  .session-item {
+    min-height: 40px;
+  }
+  .conversation-action-button {
+    width: 34px;
+    height: 34px;
+  }
+  .composer-select,
+  .composer-stop-slot {
+    height: 36px;
+  }
+}
+
+/* Fixed overlays stop above the on-screen keyboard. */
+.modal-backdrop,
+.ask-user-question-backdrop {
+  inset: 0 0 var(--kb, 0px);
+}
+.modal {
+  max-height: min(80vh, calc(100dvh - var(--kb, 0px) - 40px));
+}
+.ask-user-question-backdrop .ask-user-question {
+  max-height: min(86vh, 864px, calc(100dvh - var(--kb, 0px) - 40px));
+}
+
+/* Notch / home bar in the stacked layout. */
+@media (max-width: 900px) {
+  .sidebar {
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  }
+  .composer {
+    margin-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 480px) {
+  .ask-user-question-backdrop {
+    padding-bottom: calc(4vh + env(safe-area-inset-bottom, 0px));
+  }
+}
