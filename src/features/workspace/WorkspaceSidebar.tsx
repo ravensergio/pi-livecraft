@@ -649,8 +649,13 @@ export function WorkspaceSidebar({
       )}
       {pickerOpen && (
         <SessionPickerDialog
+          directory={workspacePath}
           groups={pickerGroups}
           onClose={() => setPickerOpen(false)}
+          onChooseDirectory={() => {
+            setPickerOpen(false)
+            onChooseWorkspace()
+          }}
         />
       )}
     </aside>

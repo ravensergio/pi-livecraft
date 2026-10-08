@@ -845,3 +845,19 @@
   color: var(--muted);
   font-size: 13px;
 }
+/* Current directory row inside the picker (phones: replaces the top-bar row). */
+.session-picker-directory {
+  margin-bottom: 4px;
+}
+.session-picker-directory-path {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  text-align: left;
+}

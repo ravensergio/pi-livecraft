@@ -248,6 +248,10 @@
   .app-shell.right-sidebar-collapsed .right-sidebar {
     display: none;
   }
+  /* The directory row moves into the "All sessions" picker on phones. */
+  .workspace-group {
+    display: none;
+  }
   .session-picker-backdrop {
     padding: 8px;
     padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));

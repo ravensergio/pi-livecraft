@@ -18,9 +18,11 @@ export interface SessionPickerGroup {
  * Full session list for small screens, where the horizontal session strip
  * only shows a few sessions. Opens from the "All" button in the top bar.
  */
-export function SessionPickerDialog({ groups, onClose }: {
+export function SessionPickerDialog({ directory, groups, onClose, onChooseDirectory }: {
+  directory?: string
   groups: SessionPickerGroup[]
   onClose: () => void
+  onChooseDirectory?: () => void
 }) {
   useEffect(() => {
     function onKey(event: KeyboardEvent): void {
@@ -46,6 +48,19 @@ export function SessionPickerDialog({ groups, onClose }: {
         role='dialog'
       >
         <h2>Sessions</h2>
+        {directory && (
+          <section className='session-picker-directory'>
+            <h3>Current directory</h3>
+            <button
+              className='session-picker-directory-path'
+              onClick={onChooseDirectory}
+              title='Change directory'
+              type='button'
+            >
+              {directory}
+            </button>
+          </section>
+        )}
         {groups.map((group) => (
           <section key={group.key}>
             <h3>{group.title}</h3>
