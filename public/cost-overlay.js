@@ -364,8 +364,8 @@
   // ---------- minimize (dot click) ----------
   const CARD_CSS = card.style.cssText;
   const HEAD_CSS = head.style.cssText;
-  // Always starts minimized (dot only); the dot toggles it open.
-  let minimized = true;
+  // Phones start minimized (dot only); desktop starts expanded.
+  let minimized = window.matchMedia('(max-width: 480px)').matches;
   function setMinimized(m) {
     minimized = m;
     if (m) {
