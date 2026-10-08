@@ -364,9 +364,8 @@
   // ---------- minimize (dot click) ----------
   const CARD_CSS = card.style.cssText;
   const HEAD_CSS = head.style.cssText;
-  // Phones start minimized (dot only): the 194px card eats most of a 390px
-  // screen. Desktop keeps the expanded default.
-  let minimized = window.matchMedia('(max-width: 480px)').matches;
+  // Always starts minimized (dot only); the dot toggles it open.
+  let minimized = true;
   function setMinimized(m) {
     minimized = m;
     if (m) {
