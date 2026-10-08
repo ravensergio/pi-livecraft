@@ -46,11 +46,21 @@ opens `http://192.168.0.9:5173`. No backend/firewall work.
   the workspace column, and the browser scrolls the focused textarea above the
   keyboard (standard chat-app behavior).
 
-## Phase 3 — 390px overflow audit
+## Phase 3 — 390px layout audit (Raven's phone screenshot, 2026-10-07)
 
-- Headless browser screenshots at 390×844: conversation with tool cards,
-  settings, git, session analysis.
-- Fix whatever overflows (wrap / scroll / stack).
+The real problem was vertical space, not overflow. Fixed:
+- **Collapsed right sidebar** was a ~300px-tall vertical block at the bottom,
+  pushing the composer up the screen. Now a 48px horizontal bottom bar
+  (rail tabs in a row, centered, safe-area bottom padding).
+- **Composer extension status chips** (TPS / ponytail / telegram) wrapped to
+  3 rows on a phone → hidden ≤480px; the Context bar stays.
+- **Session strip** cards were 220px min (one visible) → 160px (two visible,
+  the cut-off third signals horizontal scroll).
+- **New-session buttons** were widened by the ≤900px override (13px padding)
+  → back to the compact base (8px) so both fit next to the brand.
+
+Still to verify on the phone: expanded right sidebar as a bottom sheet
+(34dvh), settings dialog, git view, tool cards.
 
 ## Phase 4 — Real-device verification
 

@@ -145,7 +145,7 @@
     align-self: center;
     width: auto;
     margin-bottom: 0;
-    padding-inline: 13px;
+    padding-inline: 8px;
   }
   .session-list {
     grid-row: 3;
@@ -164,7 +164,7 @@
     overflow-y: hidden;
   }
   .session-item {
-    min-width: 220px;
+    min-width: 160px;
   }
   .workspace {
     flex: 1;
@@ -172,6 +172,29 @@
   .right-sidebar {
     max-height: 34dvh;
     border-top: 1px solid var(--panel-line);
+  }
+  /* Collapsed: the rail becomes a horizontal bottom bar — the vertical block
+     ate ~300px and pushed the composer up the screen. */
+  .app-shell.right-sidebar-collapsed .right-sidebar {
+    max-height: none;
+  }
+  .app-shell.right-sidebar-collapsed .right-sidebar-rail {
+    flex: 0 0 auto;
+    flex-direction: row;
+    width: 100%;
+    height: auto;
+    min-height: 48px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    justify-content: center;
+    border-left: 0;
+  }
+  .app-shell.right-sidebar-collapsed .rail-tab {
+    width: 48px;
+    border-bottom: 0;
+    border-left: 1px solid var(--line);
+  }
+  .app-shell.right-sidebar-collapsed .rail-tab:first-child {
+    border-left: 0;
   }
   .right-sidebar-panel {
     border-left: 0;
@@ -182,6 +205,11 @@
 }
 
 @media (max-width: 480px) {
+  /* Extension status chips (TPS / ponytail / telegram) wrap to 3 rows on a
+     phone — the Context bar below them stays. */
+  .ext-status-chip {
+    display: none;
+  }
   .brand-mark {
     width: 35px;
     height: 35px;
