@@ -231,6 +231,8 @@
   /* Extension status pills: one swipeable row instead of 3 wrapped rows;
      the Context bar below stays. Desktop is untouched (display: contents). */
   .ext-status-chips {
+    align-self: stretch;
+    min-width: 0;
     display: flex;
     flex-wrap: nowrap;
     gap: 5px;
@@ -238,6 +240,12 @@
     scrollbar-width: none;
   }
   .ext-status-chips::-webkit-scrollbar {
+    display: none;
+  }
+  /* The collapsed right-sidebar rail (analysis/quota/todo/files/terminal)
+     is useless on a phone — hide it so the composer sits at the very bottom.
+     Explicitly opened panels still show as a bottom sheet. */
+  .app-shell.right-sidebar-collapsed .right-sidebar {
     display: none;
   }
   .session-picker-backdrop {
