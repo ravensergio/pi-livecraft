@@ -228,9 +228,16 @@
 }
 
 @media (max-width: 480px) {
-  /* Extension status chips (TPS / ponytail / telegram) wrap to 3 rows on a
-     phone — the Context bar below them stays. */
-  .ext-status-chip {
+  /* Extension status pills: one swipeable row instead of 3 wrapped rows;
+     the Context bar below stays. Desktop is untouched (display: contents). */
+  .ext-status-chips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ext-status-chips::-webkit-scrollbar {
     display: none;
   }
   .session-picker-backdrop {

@@ -45,15 +45,17 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
       )}
       {/* Session name + folder live in the sidebar; keep only the "Pi is working" dot here. */}
       {/* <SessionInfo name={session.name} cwd={session.cwd} active={running} /> */}
-      {extensionStatuses.map(({ text, tone }, index) => (
-        <span
-          className={tone ? `ext-status-chip ${tone}` : extensionStatusTone(text)}
-          key={`${index}-${text}`}
-          title={text}
-        >
-          {text}
-        </span>
-      ))}
+      <div className='ext-status-chips'>
+        {extensionStatuses.map(({ text, tone }, index) => (
+          <span
+            className={tone ? `ext-status-chip ${tone}` : extensionStatusTone(text)}
+            key={`${index}-${text}`}
+            title={text}
+          >
+            {text}
+          </span>
+        ))}
+      </div>
       <div className='composer-stats-wrap'>
         {running && (
           <span aria-label='Pi is active' className='session-status-indicator working' role='img' />

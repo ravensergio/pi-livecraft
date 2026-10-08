@@ -301,6 +301,12 @@
   border-color: color-mix(in srgb, var(--warning) 38%, var(--line-strong));
   background: color-mix(in srgb, var(--warning) 9%, var(--surface));
 }
+/* Wrapper is invisible on desktop (display: contents); on phones it becomes
+   a single swipeable row — see responsive.css. */
+.ext-status-chips {
+  display: contents;
+}
+
 /* Extension status entries (pi-telegram-plus etc.) — read-only pills. */
 .ext-status-chip {
   flex: none;
