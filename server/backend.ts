@@ -1,7 +1,6 @@
 import { createReadStream } from 'node:fs'
 import { appendFile, readdir, realpath, stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { dirname, extname, join, resolve, sep } from 'node:path'
+import { dirname, extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManagerClient } from './manager-client.ts'
@@ -46,7 +45,7 @@ import { isObject } from '../shared/is-object.ts'
 // next one is diagnosable; exit on uncaught exceptions (state may be
 // inconsistent) so node --watch restarts clean. Unhandled rejections are
 // often harmless (aborted client requests) — log, stay up.
-const crashLogPath = join(tmpdir(), 'pi-livecraft-backend-crash.log')
+const crashLogPath = fileURLToPath(new URL('../backend-crash.log', import.meta.url))
 function logCrash(kind: string, error: unknown): void {
   const detail = error instanceof Error ? (error.stack ?? error.message) : String(error)
   void appendFile(crashLogPath, `[${new Date().toISOString()}] ${kind}: ${detail}\n`).catch(() =>

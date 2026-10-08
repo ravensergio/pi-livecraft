@@ -1,11 +1,10 @@
 import { appendFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 const backendPort = process.env.PI_LIVECRAFT_BACKEND_PORT ?? '43121'
-const proxyErrorLog = join(tmpdir(), 'pi-livecraft-proxy.log')
+const proxyErrorLog = fileURLToPath(new URL('./proxy-error.log', import.meta.url))
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
