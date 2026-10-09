@@ -248,7 +248,10 @@
   display: flex;
   gap: 8px;
 }
-.ask-user-question-actions button, .modal-actions button {
+.ask-user-question-actions button,
+.modal-actions button,
+.directory-path-row button,
+.directory-browse-bar button {
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 8px 11px;
@@ -261,14 +264,20 @@
     transform 180ms ease,
     box-shadow 180ms ease;
 }
-.ask-user-question-actions button:hover:not(:disabled) {
+.ask-user-question-actions button:hover:not(:disabled),
+.directory-path-row button:hover:not(:disabled),
+.directory-browse-bar button:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgb(0 0 0 / 10%);
 }
-.ask-user-question-actions button:active:not(:disabled) {
+.ask-user-question-actions button:active:not(:disabled),
+.directory-path-row button:active:not(:disabled),
+.directory-browse-bar button:active:not(:disabled) {
   transform: scale(0.97);
 }
-.modal-actions button.primary, .ask-user-question-actions > div button.primary {
+.modal-actions button.primary,
+.ask-user-question-actions > div button.primary,
+.directory-browse .primary {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--surface);

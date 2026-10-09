@@ -2,7 +2,7 @@ import { open, readdir, readFile, realpath, stat } from 'node:fs/promises'
 import type { FileHandle } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { isAbsolute, join, relative, sep } from 'node:path'
-import type { RecentSession } from '../shared/types.ts'
+import type { RecentSession, SessionWorkspace } from '../shared/types.ts'
 import { isObject } from '../shared/is-object.ts'
 
 const sessionDirectory = resolvePiSessionDirectory(process.env, homedir())
@@ -56,6 +56,55 @@ export async function listRecentPiSessions(
     .filter((session): session is RecentSession => session?.cwd === cwd)
     .sort((left, right) => right.updatedAt - left.updatedAt)
     .slice(0, MAX_SESSIONS)
+}
+
+/** Lists every workspace that has Pi sessions, most recently used first.
+ *  Only the file header is read (the cwd lives in line one), so this stays
+ *  cheap even with many session files. Workspaces whose directory no longer
+ *  exists drop out via realpath. */
+export async function listSessionWorkspaces(): Promise<SessionWorkspace[]> {
+  const paths = await listSessionFiles(sessionDirectory)
+  const aggregated = new Map<string, { sessionCount: number; lastUsed: number }>()
+  await Promise.all(
+    paths.map(async (path) => {
+      const header = await readSessionHeader(path)
+      if (!header) return
+      let cwd: string
+      try {
+        cwd = await realpath(header.cwd)
+      } catch {
+        return
+      }
+      let mtime = 0
+      try {
+        mtime = (await stat(path)).mtimeMs
+      } catch {
+        return
+      }
+      const entry = aggregated.get(cwd) ?? { sessionCount: 0, lastUsed: 0 }
+      entry.sessionCount += 1
+      if (mtime > entry.lastUsed) entry.lastUsed = mtime
+      aggregated.set(cwd, entry)
+    }),
+  )
+  return [...aggregated.entries()]
+    .map(([path, entry]) => ({ path, ...entry }))
+    .sort((left, right) => right.lastUsed - left.lastUsed)
+}
+
+/** Reads only the first line of a session file to get its header. */
+async function readSessionHeader(path: string): Promise<PiSessionHeader | null> {
+  let handle: FileHandle | undefined
+  try {
+    handle = await open(path, 'r')
+    const chunk = Buffer.alloc(4096)
+    const { bytesRead } = await handle.read(chunk, 0, 4096, 0)
+    return parseHeader(chunk.subarray(0, bytesRead).toString('utf8').split('\n')[0])
+  } catch {
+    return null
+  } finally {
+    await handle?.close().catch(() => undefined)
+  }
 }
 
 /** Verifies that a file belongs to the Pi session directory before loading its metadata. */

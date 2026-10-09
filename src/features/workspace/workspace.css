@@ -682,6 +682,62 @@
   background: var(--accent-soft);
   color: var(--accent-hover);
 }
+.directory-path-row {
+  display: flex;
+  gap: 8px;
+}
+.directory-path-row .directory-path-input {
+  flex: 1;
+}
+.directory-browse {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-raised);
+}
+.directory-browse-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.directory-browse-path {
+  flex: 1;
+  overflow: hidden;
+  color: var(--muted);
+  font: 12px ui-monospace, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.directory-browse-list {
+  display: grid;
+  gap: 4px;
+  max-height: 180px;
+  padding: 8px;
+  overflow: auto;
+}
+.directory-browse-list button {
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: transparent;
+  color: var(--ink);
+  font: 12px ui-monospace, monospace;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.directory-browse-list button:hover,
+.directory-browse-list button:focus-visible {
+  border-color: var(--line-strong);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+.directory-browse .primary {
+  margin: 0 8px 8px;
+}
 
 /* Session context actions stay hidden until invoked by pointer or keyboard. */
 .session-context-menu {

@@ -1,12 +1,12 @@
 import { createReadStream } from 'node:fs'
 import { appendFile, readdir, realpath, stat } from 'node:fs/promises'
-import { dirname, extname, resolve, sep } from 'node:path'
+import { dirname, extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManagerClient } from './manager-client.ts'
 import { broadcastFrame } from './sse-broadcast.ts'
 import { ManagerRuntimeMonitor } from './manager-runtime-monitor.ts'
-import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
+import { listRecentPiSessions, listSessionWorkspaces, loadPiSession } from './pi-session-store.ts'
 import {
   commitChanges,
   discardChanges,
@@ -208,6 +208,19 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
 
   if (method === 'GET' && url.pathname === '/api/directories') {
     sendJson(response, 200, await listDirectories(url.searchParams.get('path') ?? '~/.pi'))
+    return
+  }
+  if (method === 'POST' && url.pathname === '/api/directories/resolve') {
+    const body = await readJsonBody(request)
+    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    if (!name || name.includes('\\') || name.includes('/'))
+      throw new HttpError(400, 'Folder name is required')
+    const cwd = typeof body.cwd === 'string' ? body.cwd : null
+    sendJson(response, 200, { matches: await findDirectoriesByName(name, cwd) })
+    return
+  }
+  if (method === 'GET' && url.pathname === '/api/workspaces') {
+    sendJson(response, 200, await listSessionWorkspaces())
     return
   }
 
@@ -616,6 +629,66 @@ async function listDirectories(path: string): Promise<DirectoryListing> {
     .sort((left, right) => left.name.localeCompare(right.name))
   const parent = dirname(canonicalPath)
   return { path: canonicalPath, parentPath: parent === canonicalPath ? null : parent, directories }
+}
+/**
+ * Resolves a folder name to full paths: the native folder picker only reports
+ * the name, so this finds folders with that name. The current workspace and
+ * its siblings are checked first (the common case, instant); only a miss
+ * falls back to a bounded scan of the drive roots.
+ */
+const RESOLVE_SKIP = new Set([
+  'node_modules',
+  '.git',
+  'Windows',
+  'Program Files',
+  'Program Files (x86)',
+  'Recovery',
+  'System Volume Information',
+  'PerfLogs',
+  '$Recycle.Bin',
+  'Config.Msi',
+])
+const RESOLVE_MAX_DEPTH = 4
+const RESOLVE_MAX_MATCHES = 20
+
+async function findDirectoriesByName(name: string, cwd: string | null): Promise<string[]> {
+  if (cwd) {
+    const candidate = join(cwd, name)
+    try {
+      if ((await stat(candidate)).isDirectory()) return [candidate]
+    } catch {
+      // not a sibling of the current workspace — fall through to the scan
+    }
+  }
+  const roots: string[] = []
+  for (const letter of 'CDEFGH') {
+    const drive = `${letter}:\\`
+    try {
+      if ((await stat(drive)).isDirectory()) roots.push(drive)
+    } catch {
+      // drive does not exist
+    }
+  }
+  const matches: string[] = []
+  async function scan(directory: string, depth: number): Promise<void> {
+    if (depth > RESOLVE_MAX_DEPTH || matches.length >= RESOLVE_MAX_MATCHES) return
+    let entries
+    try {
+      entries = await readdir(directory, { withFileTypes: true })
+    } catch {
+      return
+    }
+    await Promise.all(
+      entries.map(async (entry) => {
+        if (!entry.isDirectory() || RESOLVE_SKIP.has(entry.name)) return
+        const path = join(directory, entry.name)
+        if (entry.name === name) matches.push(path)
+        if (matches.length < RESOLVE_MAX_MATCHES) await scan(path, depth + 1)
+      }),
+    )
+  }
+  await Promise.all(roots.map((root) => scan(root, 0)))
+  return matches
 }
 
 /** Reads the JSON body with a size limit to protect the backend from oversized requests. */

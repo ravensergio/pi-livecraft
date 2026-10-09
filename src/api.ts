@@ -12,6 +12,7 @@ import type {
   RecentSession,
   SessionSnapshot,
   SessionSummary,
+  SessionWorkspace,
   TodoItem,
   WorkspaceFile,
 } from '../shared/types.ts'
@@ -77,6 +78,16 @@ export async function listRecentSessions(cwd: string): Promise<RecentSession[]> 
 
 export async function listDirectories(path: string): Promise<DirectoryListing> {
   return request<DirectoryListing>(`/api/directories?path=${encodeURIComponent(path)}`)
+}
+
+export async function listWorkspaces(): Promise<SessionWorkspace[]> {
+  return request<SessionWorkspace[]>('/api/workspaces')
+}
+export async function resolveDirectory(name: string, cwd: string): Promise<{ matches: string[] }> {
+  return request<{ matches: string[] }>(`/api/directories/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ name, cwd }),
+  })
 }
 
 export async function openExplorer(cwd: string): Promise<void> {

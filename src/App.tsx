@@ -1599,7 +1599,6 @@ function App() {
       {directoryPickerOpen && (
         <DirectoryPicker
           initialPath={workspacePath}
-          recentPaths={recentWorkspacePaths}
           onClose={() => setDirectoryPickerOpen(false)}
           onError={(cause) => showToast('error', messageOf(cause))}
           onSelect={selectWorkspace}

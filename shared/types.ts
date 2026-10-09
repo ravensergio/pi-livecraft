@@ -32,6 +32,11 @@ export interface DirectoryListing {
   parentPath: string | null
   directories: DirectoryEntry[]
 }
+export interface SessionWorkspace {
+  path: string
+  sessionCount: number
+  lastUsed: number
+}
 
 export interface GitFileChange {
   path: string
