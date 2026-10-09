@@ -13,17 +13,25 @@ import {
   parseAskUserQuestionResponse,
 } from '../shared/ask-user-question.ts'
 const rpcTitle = 'Pi Livecraft questionnaire'
+let toolRegistered = false
+let externalToolNotified = false
 export default function registerAskUserQuestion(pi: ExtensionAPI): void {
   // Register after extension loading so a same-named auto-discovered tool does not trigger Pi's fatal load diagnostic.
+  // session_start fires again on in-process session switches; the tool is
+  // registered once per process, so later starts are skipped.
   pi.on('session_start', (_event, ctx) => registerAskUserQuestionTool(pi, ctx))
 }
 
 function registerAskUserQuestionTool(pi: ExtensionAPI, ctx: ExtensionContext): void {
+  if (toolRegistered) return
   if (pi.getAllTools().some((tool) => tool.name === 'ask_user_question')) {
-    ctx.ui.notify(
-      'The ask_user_question tool is already registered in Pi. Pi Livecraft will not replace it; the questionnaire remains available, but its UI may be limited while that tool remains registered.',
-      'error',
-    )
+    if (!externalToolNotified) {
+      externalToolNotified = true
+      ctx.ui.notify(
+        'The ask_user_question tool is already registered in Pi. Pi Livecraft will not replace it; the questionnaire remains available, but its UI may be limited while that tool remains registered.',
+        'error',
+      )
+    }
     return
   }
 
@@ -74,6 +82,7 @@ function registerAskUserQuestionTool(pi: ExtensionAPI, ctx: ExtensionContext): v
       )
     },
   })
+  toolRegistered = true
 }
 
 async function askInLivecraft(request: AskUserQuestionRequest, ctx: ExtensionContext) {
