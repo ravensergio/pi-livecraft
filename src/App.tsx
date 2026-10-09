@@ -296,7 +296,7 @@ function App() {
         // Read-time scaling: long errors get more time, capped so toasts never linger.
         const baseMs = kind === 'error' ? 5000 : 3500
         const perCharMs = kind === 'error' ? 50 : 40
-        const capMs = kind === 'error' ? 12000 : 8000
+        const capMs = kind === 'error' ? 15000 : 10000
         window.setTimeout(
           () => startDismissal(toast.id),
           Math.min(capMs, baseMs + message.length * perCharMs),
