@@ -71,7 +71,6 @@ export class PiProcess extends EventEmitter {
         '--extension',
         fileURLToPath(new URL('../pi-extensions/ask-user-question.ts', import.meta.url)),
         '--extension',
-        '--extension',
         fileURLToPath(new URL('../pi-extensions/quotas.ts', import.meta.url)),
         '--extension',
         fileURLToPath(new URL('../pi-extensions/tree.ts', import.meta.url)),
