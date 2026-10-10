@@ -453,6 +453,7 @@ function App() {
     addOptimisticUserMessage,
     addPendingSteering,
     clearActivity,
+    clearLiveMessages,
     flushLiveUpdates,
     handlePiEvent,
     liveMessages,
@@ -774,7 +775,12 @@ function App() {
         && event.statusKey === 'pi-livecraft.tree'
         && typeof event.statusText === 'string' && event.statusText
       ) {
-        if (sessionId === selectedIdRef.current) void refreshSnapshot(sessionId)
+        if (sessionId === selectedIdRef.current) {
+          // The live buffer still holds the pre-navigation streamed reply — drop it
+          // or it re-renders on top of the shortened history until the next prompt.
+          clearLiveMessages()
+          void refreshSnapshot(sessionId)
+        }
       }
       // Any other extension status key becomes a chip in the composer status bar.
       if (event.type === 'extension_ui_request' && event.method === 'setStatus') {
@@ -850,6 +856,7 @@ function App() {
     [
       addPendingRequest,
       clearActivity,
+      clearLiveMessages,
       flushLiveUpdates,
       handlePiEvent,
       markSessionCompleted,
