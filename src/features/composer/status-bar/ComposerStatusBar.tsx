@@ -40,7 +40,7 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
     <div className='composer-info' aria-label='Session information'>
       {compacting && (
         <div aria-label='Compaction in progress' className='composer-compacting' role='status'>
-          <span aria-hidden='true' className='composer-compacting-spinner' /> Compaction en cours…
+          <span aria-hidden='true' className='composer-compacting-spinner' /> Compacting…
         </div>
       )}
       {/* Session name + folder live in the sidebar; keep only the "Pi is working" dot here. */}
