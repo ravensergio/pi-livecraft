@@ -30,6 +30,7 @@ const host = '127.0.0.1'
 const port = readPort('PI_LIVECRAFT_MANAGER_PORT', 43_120)
 const minimumOpenSessionsPerWorkspace = 3
 const idleReuseAfterMs = readDuration('PI_LIVECRAFT_IDLE_REUSE_AFTER_MS', 3 * 60_000)
+const filelessReapAfterMs = 5 * 60_000
 const clients = new Set<Socket>()
 const sessions = new Map<string, ManagedSession>()
 const openingSessions = new Map<string, Promise<SessionSummary>>()
@@ -83,6 +84,23 @@ server.on('error', (error) => {
 server.listen(port, host, () => {
   console.log(`Pi manager listening on tcp://${host}:${port}`)
 })
+// Abandoned new sessions (no file, nothing written) keep a Pi process alive
+// forever and are not visible in the UI — reap them after they sit idle.
+setInterval(reapFilelessSessions, 30_000).unref()
+
+function reapFilelessSessions(): void {
+  const now = Date.now()
+  for (const session of sessions.values()) {
+    const { summary } = session
+    if (summary.sessionPath !== undefined) continue
+    if (summary.status !== 'idle' || session.switching) continue
+    if (session.pendingUi.size > 0 || session.inFlightRequests > 0) continue
+    if (session.idleSince === undefined || now - session.idleSince < filelessReapAfterMs) continue
+    void closeSession({ id: 'reaper', action: 'close', sessionId: summary.id }).catch(() =>
+      undefined
+    )
+  }
+}
 
 process.on('SIGINT', () => void shutdown(0))
 process.on('SIGTERM', () => void shutdown(0))
@@ -580,9 +598,19 @@ async function sendCommand(request: ManagerRequest): Promise<JsonObject> {
   if (typeof request.sessionId !== 'string' || !isObject(request.command)) {
     throw new Error('Session id and Pi command are required')
   }
-  const session = sessions.get(request.sessionId)
-  if (!session) throw new Error('Unknown session')
-  if (session.summary.status === 'exited') throw new Error('Pi session has exited')
+  const found = sessions.get(request.sessionId)
+  if (!found) throw new Error('Unknown session')
+  const startsAgent = request.command.type === 'prompt'
+    && (typeof request.command.message !== 'string' || !request.command.message.startsWith('/'))
+  let session = found
+  if (session.summary.status === 'exited') {
+    if (!startsAgent) throw new Error('Pi session has exited')
+    // A reaped empty session is revived transparently by its first prompt.
+    await startSession(session.summary)
+    const revived = sessions.get(request.sessionId)
+    if (!revived || revived.summary.status === 'exited') throw new Error('Pi session has exited')
+    session = revived
+  }
   if (session.switching && request.command.type !== 'extension_ui_response')
     throw new Error('Pi session is switching')
 
@@ -594,8 +622,6 @@ async function sendCommand(request: ManagerRequest): Promise<JsonObject> {
     return { success: true }
   }
 
-  const startsAgent = request.command.type === 'prompt'
-    && (typeof request.command.message !== 'string' || !request.command.message.startsWith('/'))
   if (startsAgent) markSessionRunning(session)
   try {
     const response = await requestPi(session, request.command)
