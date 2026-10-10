@@ -1,19 +1,36 @@
-// Smoke test: /tree-back extension over Pi RPC.
+// Zero-model test of the /lc-tree extension: pre-write a session file,
+// navigate the tree, verify the leaf moved. No prompts -> no ninfer traffic.
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const PI = [
   process.execPath,
   'C:/Users/Raven/.pi/agent/install/releases/1.1.0/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js',
 ]
-const args = [
-  ...PI,
+
+const dir = mkdtempSync(join(tmpdir(), 'lc-tree-'))
+const sessionId = randomUUID()
+const sessionFile = join(dir, `${sessionId}.jsonl`)
+const now = new Date().toISOString()
+const entries = [
+  { type: 'session', version: 3, id: sessionId, timestamp: now, cwd: dir },
+  { type: 'message', id: 'u1', parentId: null, timestamp: now, message: { role: 'user', content: [{ type: 'text', text: 'one' }] } },
+  { type: 'message', id: 'a1', parentId: 'u1', timestamp: now, message: { role: 'assistant', content: [{ type: 'text', text: 'one-reply' }] } },
+  { type: 'message', id: 'u2', parentId: 'a1', timestamp: now, message: { role: 'user', content: [{ type: 'text', text: 'two' }] } },
+  { type: 'message', id: 'a2', parentId: 'u2', timestamp: now, message: { role: 'assistant', content: [{ type: 'text', text: 'two-reply' }] } },
+]
+writeFileSync(sessionFile, entries.map((e) => JSON.stringify(e)).join('\n') + '\n')
+
+const child = spawn(PI[0], [
+  PI[1],
   '--mode', 'rpc',
   '--extension', 'E:/z_Working_PI/00-web-pi-livecraft/pi-extensions/tree.ts',
-  '--session-id', `tree-back-test-${Date.now()}`,
-]
+  '--session', sessionFile,
+], { cwd: dir })
 
-const child = spawn(args[0], args.slice(1), { cwd: 'E:/z_Working_PI/00-web-pi-livecraft' })
 let buffer = ''
 const pending = new Map()
 let treeStatusPing = false
@@ -28,88 +45,54 @@ child.stdout.on('data', (chunk) => {
     if (typeof message.id === 'string' && pending.has(message.id)) {
       pending.get(message.id)(message)
       pending.delete(message.id)
-    } else {
-      console.log('[event]', message.type,
-        message.type === 'extension_ui_request' && message.method === 'setStatus' ? `status ${message.statusKey}="${message.statusText}"` : '')
-      if (message.type === 'extension_ui_request' && message.statusKey === 'pi-livecraft.tree' && message.statusText === 'moved')
-        treeStatusPing = true
+    } else if (message.type === 'extension_ui_request' && message.statusKey === 'pi-livecraft.tree') {
+      if (message.statusText === 'moved') treeStatusPing = true
     }
   }
 })
 child.stderr.on('data', (chunk) => process.stderr.write(`[pi] ${chunk}`))
 
-function request(command, timeoutMs = 60_000) {
+function request(command, timeoutMs = 30_000) {
   const id = randomUUID()
-  const payload = JSON.stringify({ ...command, id }) + '\n'
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`timeout: ${command.type}`)), timeoutMs)
     pending.set(id, (message) => {
       clearTimeout(timer)
       resolve(message)
     })
-    child.stdin.write(payload)
+    child.stdin.write(JSON.stringify({ ...command, id }) + '\n')
   })
 }
 
-const settled = () =>
-  new Promise((resolve) => {
-    const timer = setTimeout(resolve, 90_000)
-    const onData = (chunk) => {
-      if (chunk.toString().includes('"agent_settled"')) {
-        clearTimeout(timer)
-        child.stdout.off('data', onData)
-        resolve()
-      }
-    }
-    child.stdout.on('data', onData)
-  })
-
 try {
-  const state = await request({ type: 'get_state' })
-  console.log('spawn ok, model:', state.data?.model?.id ?? state.data?.model)
-  await request({ type: 'prompt', message: 'Reply with exactly: one' })
-  await settled()
-  await request({ type: 'prompt', message: 'Reply with exactly: two' })
-  await settled()
-
+  await request({ type: 'get_state' })
   const before = await request({ type: 'get_tree' })
   console.log('leaf before:', before.data.leafId)
 
-  // Target: the assistant reply to "one" = parent of the user "two" entry.
-  const entries = await request({ type: 'get_entries' })
-  const all = entries.data?.entries ?? []
-  const twoEntry = all.find((e) =>
-    e.type === 'message' && e.message?.role === 'user'
-    && JSON.stringify(e.message.content ?? '').includes('two'))
-  const targetId = twoEntry?.parentId
-  console.log('target (assistant "one" reply):', targetId)
-
-  const nav = await request({ type: 'prompt', message: `/lc-tree ${targetId}` })
-  console.log('nav result:', JSON.stringify(nav).slice(0, 300))
-  await new Promise((r) => setTimeout(r, 2000))
+  const nav = await request({ type: 'prompt', message: '/lc-tree a1' })
+  console.log('nav:', nav.success, JSON.stringify(nav.data))
+  await new Promise((r) => setTimeout(r, 2500))
 
   const after = await request({ type: 'get_tree' })
-  console.log('leaf after:', after.data.leafId, '(changed:', after.data.leafId !== before.data.leafId, ')')
+  console.log('leaf after:', after.data.leafId)
 
-  // The active path should end at the assistant "one" reply.
-  const msgs = await request({ type: 'get_messages' })
-  const texts = (msgs.data?.messages ?? [])
-    .filter((m) => m.role === 'user' || m.role === 'assistant')
-    .map((m) => `${m.role}: ${JSON.stringify(m.content ?? m).slice(0, 60)}`)
-  console.log('active path messages:')
-  for (const t of texts) console.log('  ', t)
-  const lastRole = texts.at(-1)?.slice(0, 11)
-  if (lastRole !== 'assistant: ') {
-    console.error('FAIL: active path should end at the assistant "one" reply')
+  // Pi may auto-append entries on load (e.g. model_change), so only assert the move.
+  const ok = after.data.leafId === 'a1' && before.data.leafId !== 'a1' && treeStatusPing
+  if (!ok) {
+    console.error('FAIL', { ping: treeStatusPing })
     process.exitCode = 1
-  }
-  if (!treeStatusPing) {
-    console.error('FAIL: pi-livecraft.tree status ping missing')
-    process.exitCode = 1
+  } else {
+    console.log('OK: leaf a2 -> a1, status ping received, zero model calls')
   }
 } catch (error) {
   console.error('FAIL:', error.message)
   process.exitCode = 1
 } finally {
   child.kill()
+  await new Promise((r) => setTimeout(r, 500))
+  try {
+    rmSync(dir, { recursive: true, force: true })
+  } catch {
+    // Windows file locks right after kill — the temp dir is harmless.
+  }
 }
