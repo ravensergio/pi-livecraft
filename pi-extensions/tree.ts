@@ -22,6 +22,16 @@ export default function registerLivecraftTree(pi: ExtensionAPI): void {
         ctx.ui.notify('Tree navigation was cancelled.', 'warning')
         return
       }
+      // session_tree is an extension-only event (not in the RPC stream), so ping a
+      // status key the Livecraft frontend watches to refresh the conversation.
+      ctx.ui.setStatus('pi-livecraft.tree', 'moved')
+      setTimeout(() => {
+        try {
+          ctx.ui.setStatus('pi-livecraft.tree', '')
+        } catch {
+          // ctx went stale (session switch) within the window — nothing to clear.
+        }
+      }, 1000)
       ctx.ui.notify('Continuing from the selected message.', 'info')
     },
   })

@@ -16,6 +16,7 @@ const args = [
 const child = spawn(args[0], args.slice(1), { cwd: 'E:/z_Working_PI/00-web-pi-livecraft' })
 let buffer = ''
 const pending = new Map()
+let treeStatusPing = false
 child.stdout.on('data', (chunk) => {
   buffer += chunk.toString()
   let index
@@ -28,7 +29,10 @@ child.stdout.on('data', (chunk) => {
       pending.get(message.id)(message)
       pending.delete(message.id)
     } else {
-      console.log('[event]', message.type, message.type === 'session_tree' ? JSON.stringify(message).slice(0, 200) : '')
+      console.log('[event]', message.type,
+        message.type === 'extension_ui_request' && message.method === 'setStatus' ? `status ${message.statusKey}="${message.statusText}"` : '')
+      if (message.type === 'extension_ui_request' && message.statusKey === 'pi-livecraft.tree' && message.statusText === 'moved')
+        treeStatusPing = true
     }
   }
 })
@@ -97,6 +101,10 @@ try {
   const lastRole = texts.at(-1)?.slice(0, 11)
   if (lastRole !== 'assistant: ') {
     console.error('FAIL: active path should end at the assistant "one" reply')
+    process.exitCode = 1
+  }
+  if (!treeStatusPing) {
+    console.error('FAIL: pi-livecraft.tree status ping missing')
     process.exitCode = 1
   }
 } catch (error) {

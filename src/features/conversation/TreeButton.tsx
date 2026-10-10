@@ -47,14 +47,12 @@ export function TreeButton({ entryId, onError, onTree }: TreeButtonProps) {
         type='button'
       >
         <svg aria-hidden='true' fill='none' stroke='currentColor' viewBox='0 0 16 16'>
-          <circle cx='4' cy='3' r='1.5' />
-          <circle cx='4' cy='13' r='1.5' />
-          <path d='M4 4.5v7' strokeLinecap='round' />
           <path
-            d='M6.5 10.5 12 5.5M12 5.5H8M12 5.5V9'
+            d='M2.5 4h11M6.5 4V2.5h3V4M4 4l.7 9.5h6.6L12 4'
             strokeLinecap='round'
             strokeLinejoin='round'
           />
+          <path d='M6.5 6.5v4.5M9.5 6.5v4.5' strokeLinecap='round' />
         </svg>
       </button>
     </Tooltip>

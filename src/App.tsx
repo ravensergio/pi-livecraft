@@ -767,10 +767,21 @@ function App() {
       ) {
         void getQuotas().then(setQuotas).catch(() => undefined)
       }
+      // The tree extension pings this key after /lc-tree navigation — refresh the
+      // conversation so the hidden tail disappears without waiting for the next prompt.
+      if (
+        event.type === 'extension_ui_request' && event.method === 'setStatus'
+        && event.statusKey === 'pi-livecraft.tree'
+        && typeof event.statusText === 'string' && event.statusText
+      ) {
+        if (sessionId === selectedIdRef.current) void refreshSnapshot(sessionId)
+      }
       // Any other extension status key becomes a chip in the composer status bar.
       if (event.type === 'extension_ui_request' && event.method === 'setStatus') {
         const key = typeof event.statusKey === 'string' ? event.statusKey : ''
-        if (key && key !== 'agent' && key !== 'pi-livecraft.quotas') {
+        if (
+          key && key !== 'agent' && key !== 'pi-livecraft.quotas' && key !== 'pi-livecraft.tree'
+        ) {
           setExtensionStatuses((current) => {
             // Extension status text is ANSI-themed for terminals — keep the color intent,
             // strip the codes from the displayed text.

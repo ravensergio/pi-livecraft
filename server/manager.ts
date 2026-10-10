@@ -673,7 +673,7 @@ function handlePiEvent(session: ManagedSession, event: JsonObject): void {
   }
   if (event.type === 'extension_ui_request' && event.method === 'setStatus') {
     const key = typeof event.statusKey === 'string' ? event.statusKey : ''
-    if (key && key !== 'agent' && key !== 'pi-livecraft.quotas') {
+    if (key && key !== 'agent' && key !== 'pi-livecraft.quotas' && key !== 'pi-livecraft.tree') {
       const raw = typeof event.statusText === 'string' ? event.statusText : ''
       if (raw.trim()) session.extensionStatuses.set(key, raw)
       else session.extensionStatuses.delete(key)
