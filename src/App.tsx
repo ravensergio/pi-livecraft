@@ -721,6 +721,10 @@ function App() {
           next.delete(sessionId)
           return next
         })
+      // Tree navigation (e.g. /tree-back) moves the leaf pointer — re-fetch so the
+      // conversation shows the active branch, not the abandoned tail.
+      if (event.type === 'session_tree' && sessionId === selectedIdRef.current)
+        void refreshSnapshot(sessionId)
       if (
         event.type === 'auto_retry_end' && event.success === false && typeof event
             .finalError === 'string'
@@ -822,6 +826,7 @@ function App() {
       handlePiEvent,
       markSessionCompleted,
       refreshSessionQuotas,
+      refreshSnapshot,
       scheduleGitRefresh,
       renameSession,
       selectCreatedSession,
