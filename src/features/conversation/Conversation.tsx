@@ -500,7 +500,7 @@ export function Conversation(
       tabIndex={0}
     >
       <div className='conversation-content' ref={conversationContentRef}>
-        {renderedMessageEntries.map((entry) => {
+        {renderedMessageEntries.map((entry, entryIndex) => {
           const { message } = entry
           if (entry.source === 'history') {
             const index = entry.historyIndex
@@ -519,6 +519,7 @@ export function Conversation(
                   <MessageCard
                     key='message'
                     live={false}
+                    isLast={entryIndex === renderedMessageEntries.length - 1}
                     message={message}
                     onError={onError}
                     onFork={onFork}

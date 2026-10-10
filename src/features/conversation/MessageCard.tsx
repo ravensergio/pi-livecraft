@@ -14,7 +14,8 @@ export type ReasoningMode = 'auto' | 'expanded' | 'collapsed'
 /** Renders a visible protocol message with the default or custom presentation. */
 export const MessageCard = memo(
   function MessageCard(
-    { live = false, message, onError, onFork, onTree, reasoningMode = 'auto' }: {
+    { isLast = false, live = false, message, onError, onFork, onTree, reasoningMode = 'auto' }: {
+      isLast?: boolean
       live?: boolean
       message: JsonObject
       onError: (cause: unknown) => void
@@ -27,6 +28,7 @@ export const MessageCard = memo(
       return <DefaultCustomMessage message={message} />
     return (
       <DefaultMessageCard
+        isLast={isLast}
         live={live}
         message={message}
         onError={onError}
@@ -40,7 +42,8 @@ export const MessageCard = memo(
 
 const DefaultMessageCard = memo(
   function DefaultMessageCard(
-    { live, message, onError, onFork, onTree, reasoningMode }: {
+    { isLast = false, live, message, onError, onFork, onTree, reasoningMode }: {
+      isLast?: boolean
       live: boolean
       message: JsonObject
       onError: (cause: unknown) => void
@@ -62,6 +65,7 @@ const DefaultMessageCard = memo(
       && message.content.some((part) => isObject(part) && part.type === 'toolCall')
     const showTreeButton = entryId !== undefined
       && !live
+      && !isLast
       && (role === 'user' || (role === 'assistant' && !hasToolCalls))
     return (
       <article className={`message ${role}`}>
