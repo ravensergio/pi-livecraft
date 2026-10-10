@@ -120,7 +120,9 @@ function messageFromEntry(
         && forkEntryIds.has(entry.id)
       ? entry.id
       : undefined
-    return [forkEntryId ? { ...entry.message, forkEntryId } : entry.message]
+    // entryId rides on every message so the UI can target tree navigation.
+    const base = { ...entry.message, entryId: typeof entry.id === 'string' ? entry.id : undefined }
+    return [forkEntryId ? { ...base, forkEntryId } : base]
   }
   if (entry.type === 'compaction' && typeof entry.summary === 'string')
     return [{

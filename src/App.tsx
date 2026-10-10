@@ -482,6 +482,23 @@ function App() {
     return true
   }, [refreshSessions, refreshSnapshot, selectedId])
 
+  /** Moves the session leaf to a message (the branch button); later messages are hidden, not deleted. */
+  const handleTreeConversation = useCallback(async (entryId: string): Promise<boolean> => {
+    const messages = snapshot?.messages ?? []
+    const index = messages.findIndex((message) => message.entryId === entryId)
+    const hidden = index >= 0 ? messages.length - index - 1 : 0
+    if (hidden === 0) return true
+    const confirmed = window.confirm(
+      hidden === 1
+        ? 'Continue from this message? The 1 later message is hidden (it stays in the session file).'
+        : `Continue from this message? The ${hidden} later messages are hidden (they stay in the session file).`,
+    )
+    if (!confirmed) return false
+    await sendPiCommand(selectedId, { type: 'prompt', message: `/lc-tree ${entryId}` })
+    await refreshSnapshot(selectedId)
+    return true
+  }, [refreshSnapshot, selectedId, sendPiCommand, snapshot?.messages])
+
   const model = isObject(snapshot.state?.model) ? snapshot.state.model : undefined
   const currentQuotaProvider = quotaProviderForModel(model?.provider)
   const currentQuotaProviderRef = useRef(currentQuotaProvider)
@@ -1395,6 +1412,7 @@ function App() {
                     navigationRequest={conversationNavigation}
                     onError={handleConversationError}
                     onFork={handleForkConversation}
+                    onTree={handleTreeConversation}
                     pendingSteering={pendingSteering}
                     requestDurations={observedRequestDurations}
                     extensionTps={extensionTps[selectedSession.id]}

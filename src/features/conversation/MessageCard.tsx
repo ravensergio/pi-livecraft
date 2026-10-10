@@ -3,6 +3,7 @@ import type { JsonObject } from '../../../shared/types.ts'
 import { isObject } from '../../../shared/is-object.ts'
 import { CopyButton } from './CopyButton.tsx'
 import { ForkButton } from './ForkButton.tsx'
+import { TreeButton } from './TreeButton.tsx'
 import { Markdown } from './Markdown.tsx'
 import { hasVisibleContent, reasoningTextForDisplay } from './message-display.ts'
 import { formatSpeed, formatTokens, formatTurnCost, type MessageUsage } from './message-usage.ts'
@@ -13,11 +14,12 @@ export type ReasoningMode = 'auto' | 'expanded' | 'collapsed'
 /** Renders a visible protocol message with the default or custom presentation. */
 export const MessageCard = memo(
   function MessageCard(
-    { live = false, message, onError, onFork, reasoningMode = 'auto' }: {
+    { live = false, message, onError, onFork, onTree, reasoningMode = 'auto' }: {
       live?: boolean
       message: JsonObject
       onError: (cause: unknown) => void
       onFork: (entryId: string) => Promise<boolean>
+      onTree: (entryId: string) => Promise<boolean>
       reasoningMode?: ReasoningMode
     },
   ) {
@@ -29,6 +31,7 @@ export const MessageCard = memo(
         message={message}
         onError={onError}
         onFork={onFork}
+        onTree={onTree}
         reasoningMode={reasoningMode}
       />
     )
@@ -37,11 +40,12 @@ export const MessageCard = memo(
 
 const DefaultMessageCard = memo(
   function DefaultMessageCard(
-    { live, message, onError, onFork, reasoningMode }: {
+    { live, message, onError, onFork, onTree, reasoningMode }: {
       live: boolean
       message: JsonObject
       onError: (cause: unknown) => void
       onFork: (entryId: string) => Promise<boolean>
+      onTree: (entryId: string) => Promise<boolean>
       reasoningMode: ReasoningMode
     },
   ) {
@@ -52,11 +56,21 @@ const DefaultMessageCard = memo(
     const forkEntryId = role === 'user' && typeof message.forkEntryId === 'string'
       ? message.forkEntryId
       : undefined
+    const entryId = typeof message.entryId === 'string' ? message.entryId : undefined
+    // Branch button: user bubbles and final assistant replies (no tool calls).
+    const hasToolCalls = Array.isArray(message.content)
+      && message.content.some((part) => isObject(part) && part.type === 'toolCall')
+    const showTreeButton = entryId !== undefined
+      && !live
+      && (role === 'user' || (role === 'assistant' && !hasToolCalls))
     return (
       <article className={`message ${role}`}>
-        {(text || forkEntryId) && (
+        {(text || forkEntryId || showTreeButton) && (
           <div className='conversation-actions message-actions'>
             {forkEntryId && <ForkButton entryId={forkEntryId} onError={onError} onFork={onFork} />}
+            {showTreeButton && entryId && (
+              <TreeButton entryId={entryId} onError={onError} onTree={onTree} />
+            )}
             {text && <CopyButton label='Copy message' onError={onError} value={text} />}
           </div>
         )}

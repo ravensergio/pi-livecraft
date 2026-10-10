@@ -115,10 +115,10 @@ test('keeps the active conversation before and after compaction', () => {
   ], 'user-2')
 
   assert.deepEqual(messages, [
-    { role: 'user', content: 'Original request' },
-    { role: 'assistant', content: 'Original response' },
+    { role: 'user', content: 'Original request', entryId: 'user-1' },
+    { role: 'assistant', content: 'Original response', entryId: 'assistant-1' },
     { role: 'custom', customType: 'compaction', content: 'Summary', display: true },
-    { role: 'user', content: 'Continue' },
+    { role: 'user', content: 'Continue', entryId: 'user-2' },
   ])
 })
 
@@ -149,9 +149,9 @@ test('marks forkable user messages by entry ID instead of duplicated text', () =
   )
 
   assert.deepEqual(messages, [
-    { role: 'user', content: 'Repeat this' },
-    { role: 'assistant', content: 'Done' },
-    { role: 'user', content: 'Repeat this', forkEntryId: 'user-2' },
+    { role: 'user', content: 'Repeat this', entryId: 'user-1' },
+    { role: 'assistant', content: 'Done', entryId: 'assistant-1' },
+    { role: 'user', content: 'Repeat this', entryId: 'user-2', forkEntryId: 'user-2' },
   ])
 })
 
@@ -168,8 +168,8 @@ test('filters compaction entries without a string summary', () => {
   ], 'user-2')
 
   assert.deepEqual(messages, [
-    { role: 'user', content: 'Hello' },
-    { role: 'user', content: 'World' },
+    { role: 'user', content: 'Hello', entryId: 'user-1' },
+    { role: 'user', content: 'World', entryId: 'user-2' },
   ])
 })
 

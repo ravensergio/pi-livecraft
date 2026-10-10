@@ -66,6 +66,7 @@ export function Conversation(
     workingDirectory,
     onError,
     onFork,
+    onTree,
   }: {
     activity: Activity | null
     agentName?: string
@@ -85,6 +86,7 @@ export function Conversation(
     workingDirectory: string
     onError: (cause: unknown) => void
     onFork: (entryId: string) => Promise<boolean>
+    onTree: (entryId: string) => Promise<boolean>
   },
 ) {
   const showToolCalls = conversationView !== 'simple'
@@ -520,6 +522,7 @@ export function Conversation(
                     message={message}
                     onError={onError}
                     onFork={onFork}
+                    onTree={onTree}
                     reasoningMode={reasoningMode}
                   />
                 )}
@@ -580,6 +583,7 @@ export function Conversation(
                         message={part.message}
                         onError={onError}
                         onFork={onFork}
+                        onTree={onTree}
                         reasoningMode={reasoningMode}
                       />
                     )

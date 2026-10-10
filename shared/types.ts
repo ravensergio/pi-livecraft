@@ -208,6 +208,8 @@ export interface PromptTemplate {
 
 export interface ConversationMessage extends JsonObject {
   forkEntryId?: string
+  /** Pi session entry id this message was projected from (tree navigation target). */
+  entryId?: string
 }
 
 export interface SessionSnapshot {

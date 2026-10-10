@@ -71,20 +71,34 @@ try {
   const before = await request({ type: 'get_tree' })
   console.log('leaf before:', before.data.leafId)
 
-  const nav = await request({ type: 'prompt', message: '/tree-back 1' })
+  // Target: the assistant reply to "one" = parent of the user "two" entry.
+  const entries = await request({ type: 'get_entries' })
+  const all = entries.data?.entries ?? []
+  const twoEntry = all.find((e) =>
+    e.type === 'message' && e.message?.role === 'user'
+    && JSON.stringify(e.message.content ?? '').includes('two'))
+  const targetId = twoEntry?.parentId
+  console.log('target (assistant "one" reply):', targetId)
+
+  const nav = await request({ type: 'prompt', message: `/lc-tree ${targetId}` })
   console.log('nav result:', JSON.stringify(nav).slice(0, 300))
   await new Promise((r) => setTimeout(r, 2000))
 
   const after = await request({ type: 'get_tree' })
   console.log('leaf after:', after.data.leafId, '(changed:', after.data.leafId !== before.data.leafId, ')')
 
-  // The leaf should now be the assistant "one" reply: verify via get_messages
+  // The active path should end at the assistant "one" reply.
   const msgs = await request({ type: 'get_messages' })
   const texts = (msgs.data?.messages ?? [])
     .filter((m) => m.role === 'user' || m.role === 'assistant')
-    .map((m) => `${m.role}: ${JSON.stringify(m.content ?? m).slice(0, 80)}`)
+    .map((m) => `${m.role}: ${JSON.stringify(m.content ?? m).slice(0, 60)}`)
   console.log('active path messages:')
   for (const t of texts) console.log('  ', t)
+  const lastRole = texts.at(-1)?.slice(0, 11)
+  if (lastRole !== 'assistant: ') {
+    console.error('FAIL: active path should end at the assistant "one" reply')
+    process.exitCode = 1
+  }
 } catch (error) {
   console.error('FAIL:', error.message)
   process.exitCode = 1
