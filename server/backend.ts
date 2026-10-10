@@ -698,7 +698,7 @@ async function readJsonBody(request: IncomingMessage): Promise<JsonObject> {
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
     size += buffer.length
-    if (size > 2 * 1024 * 1024) throw new HttpError(413, 'Request body exceeds 2 MiB')
+    if (size > 50 * 1024 * 1024) throw new HttpError(413, 'Request body exceeds 50 MiB')
     chunks.push(buffer)
   }
   try {

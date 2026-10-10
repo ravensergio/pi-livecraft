@@ -1,11 +1,11 @@
 export const maxComposerImages = 4
 const maxComposerImageDimension = 1600
-const maxComposerImageBytes = 350 * 1024
+const maxComposerImageBytes = 1.5 * 1024 * 1024
 
 export interface ComposerImage {
   id: string
   data: string
-  mimeType: 'image/jpeg'
+  mimeType: 'image/png'
 }
 
 /** Reduces each pasted image below the HTTP limit while preserving useful model resolution. */
@@ -20,18 +20,16 @@ export async function prepareComposerImage(file: File): Promise<ComposerImage | 
 
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
-  if (!context) throw new Error('Image compression is unavailable in this browser.')
+  if (!context) throw new Error('Image encoding is unavailable in this browser.')
   for (;;) {
     canvas.width = width
     canvas.height = height
-    context.fillStyle = 'white'
-    context.fillRect(0, 0, width, height)
+    // No white fill: PNG keeps the alpha channel, so transparent areas stay transparent.
+    context.clearRect(0, 0, width, height)
     context.drawImage(source, 0, 0, width, height)
-    for (const quality of [0.84, 0.72, 0.6, 0.5]) {
-      const blob = await canvasToBlob(canvas, quality)
-      if (blob.size <= maxComposerImageBytes)
-        return { id: crypto.randomUUID(), data: await blobToBase64(blob), mimeType: 'image/jpeg' }
-    }
+    const blob = await canvasToPng(canvas)
+    if (blob.size <= maxComposerImageBytes)
+      return { id: crypto.randomUUID(), data: await blobToBase64(blob), mimeType: 'image/png' }
     if (Math.max(width, height) <= 640) return null
     width = Math.round(width * 0.8)
     height = Math.round(height * 0.8)
@@ -55,13 +53,12 @@ function loadImageSource(file: File): Promise<HTMLImageElement> {
   })
 }
 
-/** Encodes the canvas as JPEG so PNG captures do not exceed the local request limit. */
-function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+/** Encodes the canvas as PNG — lossless, and transparency is preserved. */
+function canvasToPng(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob(
-      (blob) => blob ? resolve(blob) : reject(new Error('The image could not be compressed.')),
-      'image/jpeg',
-      quality,
+      (blob) => blob ? resolve(blob) : reject(new Error('The image could not be encoded.')),
+      'image/png',
     )
   )
 }
