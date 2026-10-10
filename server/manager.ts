@@ -86,16 +86,25 @@ server.listen(port, host, () => {
 })
 // Abandoned new sessions (no file, nothing written) keep a Pi process alive
 // forever and are not visible in the UI — reap them after they sit idle.
-setInterval(reapFilelessSessions, 30_000).unref()
+setInterval(() => void reapFilelessSessions(), 30_000).unref()
 
-function reapFilelessSessions(): void {
+async function reapFilelessSessions(): Promise<void> {
   const now = Date.now()
   for (const session of sessions.values()) {
     const { summary } = session
-    if (summary.sessionPath !== undefined) continue
     if (summary.status !== 'idle' || session.switching) continue
     if (session.pendingUi.size > 0 || session.inFlightRequests > 0) continue
     if (session.idleSince === undefined || now - session.idleSince < filelessReapAfterMs) continue
+    // sessionPath is set at spawn, but Pi creates the file lazily on the first
+    // message — only a file that exists on disk is worth keeping the process for.
+    if (summary.sessionPath !== undefined) {
+      try {
+        await stat(summary.sessionPath)
+        continue
+      } catch {
+        // file was never created — the session is empty
+      }
+    }
     void closeSession({ id: 'reaper', action: 'close', sessionId: summary.id }).catch(() =>
       undefined
     )
