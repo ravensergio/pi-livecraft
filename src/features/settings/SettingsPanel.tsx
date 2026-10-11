@@ -4,6 +4,7 @@ import { typographyFields, type TypographySettings } from './typography.ts'
 import type { CommandDefinition, CommandId } from '../commands/command-registry.ts'
 import { shortcutFromEvent, shortcutConflicts } from '../commands/command-registry.ts'
 import { VoiceSettingsSection } from '../voice/VoiceSettingsSection.tsx'
+import { WebSearchSettingsSection } from './WebSearchSettingsSection.tsx'
 import {
   applyThemePalette,
   contrastColor,
@@ -27,7 +28,13 @@ const themeVariableLabels: Record<ThemeVariable, string> = {
 // ── Tab registry ───────────────────────────────────────────────────
 
 /** Identifies a settings tab. Extend this union when adding a new tab. */
-export type SettingsTabId = 'themes' | 'typography' | 'terminal' | 'shortcuts' | 'voice'
+export type SettingsTabId =
+  | 'themes'
+  | 'typography'
+  | 'terminal'
+  | 'shortcuts'
+  | 'voice'
+  | 'websearch'
 
 /** Describes one tab in the settings modal. */
 export interface SettingsTabDefinition {
@@ -42,6 +49,7 @@ export const settingsTabs: SettingsTabDefinition[] = [
   { id: 'terminal', label: 'Terminal' },
   { id: 'shortcuts', label: 'Shortcuts' },
   { id: 'voice', label: 'Voice' },
+  { id: 'websearch', label: 'Web search' },
 ]
 
 // ── Shared props ───────────────────────────────────────────────────
@@ -569,6 +577,15 @@ export function SettingsPanel({
           {activeTab === 'voice' && (
             <TabPanel key='voice' id='settings-tab-voice' labelledBy='settings-tab-btn-voice'>
               <VoiceSettingsSection />
+            </TabPanel>
+          )}
+          {activeTab === 'websearch' && (
+            <TabPanel
+              key='websearch'
+              id='settings-tab-websearch'
+              labelledBy='settings-tab-btn-websearch'
+            >
+              <WebSearchSettingsSection />
             </TabPanel>
           )}
         </section>

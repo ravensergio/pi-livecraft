@@ -1,6 +1,7 @@
 import { createReadStream } from 'node:fs'
-import { appendFile, readdir, realpath, stat } from 'node:fs/promises'
+import { appendFile, readdir, readFile, rename, realpath, stat, writeFile } from 'node:fs/promises'
 import { dirname, extname, join, resolve, sep } from 'node:path'
+import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManagerClient } from './manager-client.ts'
@@ -222,6 +223,17 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
   if (method === 'GET' && url.pathname === '/api/workspaces') {
     sendJson(response, 200, await listSessionWorkspaces())
     return
+  }
+
+  if (url.pathname === '/api/search-config') {
+    if (method === 'GET') {
+      sendJson(response, 200, await readSearchConfig())
+      return
+    }
+    if (method === 'POST') {
+      sendJson(response, 200, await saveSearchConfig(await readJsonBody(request)))
+      return
+    }
   }
 
   if (method === 'POST' && url.pathname === '/api/explorer') {
@@ -785,4 +797,74 @@ class HttpError extends Error {
     super(message)
     this.status = status
   }
+}
+
+// ── Web search settings (mirrors pi-unsloth-webtools /search-config) ──
+
+const SEARCH_ENGINES = ['duckduckgo', 'startpage', 'yandex', 'brave', 'yahoo']
+const RENDER_ONLY_ENGINES = new Set(['brave', 'yahoo'])
+const DEFAULT_SEARCH_ENGINES = ['duckduckgo', 'startpage']
+
+function searchConfigFile(): string {
+  const agentDir = (process.env.PI_CODING_AGENT_DIR ?? '').trim() || join(homedir(), '.pi', 'agent')
+  return join(agentDir, 'settings.json')
+}
+
+async function readAgentSettings(): Promise<JsonObject> {
+  try {
+    const data: unknown = JSON.parse(await readFile(searchConfigFile(), 'utf-8'))
+    return isObject(data) ? data : {}
+  } catch {
+    return {}
+  }
+}
+
+async function readSearchConfig(): Promise<{ engines: string[]; lightpandaFallback: boolean }> {
+  const data = await readAgentSettings()
+  for (const section of ['unslothWebTools', 'webSearch']) {
+    const value = data[section]
+    if (isObject(value) && Array.isArray(value.engines)) {
+      const known = new Set(SEARCH_ENGINES)
+      const listed = [
+        ...new Set(value.engines.filter((e): e is string => typeof e === 'string' && known.has(e))),
+      ]
+      const fallback = value.lightpandaFallback === true
+      let engines = listed.length ? listed : [...DEFAULT_SEARCH_ENGINES]
+      if (!fallback) engines = engines.filter((name) => !RENDER_ONLY_ENGINES.has(name))
+      if (engines.length === 0) engines = [...DEFAULT_SEARCH_ENGINES]
+      return { engines, lightpandaFallback: fallback }
+    }
+  }
+  return { engines: [...DEFAULT_SEARCH_ENGINES], lightpandaFallback: false }
+}
+
+async function saveSearchConfig(
+  body: JsonObject,
+): Promise<{ engines: string[]; lightpandaFallback: boolean }> {
+  const known = new Set(SEARCH_ENGINES)
+  const engines = Array.isArray(body.engines)
+    ? [...new Set(body.engines.filter((e): e is string => typeof e === 'string' && known.has(e)))]
+    : []
+  const lightpandaFallback = body.lightpandaFallback === true
+  if (engines.length === 0) throw new HttpError(400, 'At least one search engine must stay on')
+  const data = await readAgentSettings()
+  let target: JsonObject | undefined
+  for (const section of ['unslothWebTools', 'webSearch']) {
+    const value = data[section]
+    if (isObject(value) && ('engines' in value || 'lightpandaFallback' in value)) {
+      target = value
+      break
+    }
+  }
+  if (!target) {
+    target = {}
+    data.webSearch = target
+  }
+  target.engines = engines
+  target.lightpandaFallback = lightpandaFallback
+  const file = searchConfigFile()
+  const temporary = `${file}.tmp.${process.pid}`
+  await writeFile(temporary, `${JSON.stringify(data, null, 2)}\n`)
+  await rename(temporary, file)
+  return { engines, lightpandaFallback }
 }
