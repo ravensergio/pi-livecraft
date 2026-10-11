@@ -36,6 +36,7 @@ import { Composer } from './features/composer/Composer.tsx'
 import { toneFromAnsi, type StatusTone } from './features/composer/status-bar/status-tone.ts'
 import { copyText } from './lib/clipboard.ts'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
+import { CommandOutputPanel } from './features/notifications/CommandOutputPanel.tsx'
 import { sessionActivity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
 import { visibleText, type ReasoningMode } from './features/conversation/MessageCard.tsx'
@@ -226,6 +227,19 @@ function App() {
     { id: string; message: string; sessionId: string }
   >()
   const [scrollToBottomRequest, setScrollToBottomRequest] = useState(0)
+  const [commandOutput, setCommandOutput] = useState<Record<string, string[]>>({})
+  const setSessionOutput = useCallback((sessionId: string, lines: string[]) => {
+    setCommandOutput((current) => {
+      if (lines.length === 0) {
+        if (!current[sessionId]) return current
+        const next = { ...current }
+        delete next[sessionId]
+        return next
+      }
+      if (current[sessionId]?.join('\n') === lines.join('\n')) return current
+      return { ...current, [sessionId]: lines }
+    })
+  }, [])
   const [conversationNavigation, setConversationNavigation] = useState<
     { id: number; target: SessionAnalysisTarget }
   >()
@@ -821,11 +835,24 @@ function App() {
         if (sessionId === selectedIdRef.current) clearActivity()
       }
       if (event.type === 'extension_ui_request') {
+        if (event.method === 'setWidget') {
+          setSessionOutput(
+            sessionId,
+            Array.isArray(event.widgetLines)
+              ? event.widgetLines.filter((line): line is string => typeof line === 'string')
+              : [],
+          )
+        }
         if (
           event.method === 'notify' || (event.method === 'setStatus' && event.statusKey === 'agent')
         ) selectCreatedSession(sessionId)
-        if (event.method === 'notify' && typeof event.message === 'string')
-          showToast(event.notifyType === 'error' ? 'error' : 'notice', event.message, sessionId)
+        if (event.method === 'notify' && typeof event.message === 'string') {
+          if (event.message.includes('\n') && event.notifyType !== 'error') {
+            setSessionOutput(sessionId, event.message.split('\n'))
+          } else {
+            showToast(event.notifyType === 'error' ? 'error' : 'notice', event.message, sessionId)
+          }
+        }
         // Intercept agent selector silently when Livecraft requested the options list.
         if (isAgentSelector(event) && agentOptionsLoadingRef.current[sessionId]) {
           const options = event.options.filter((o): o is string => typeof o === 'string')
@@ -865,6 +892,7 @@ function App() {
       scheduleGitRefresh,
       renameSession,
       selectCreatedSession,
+      setSessionOutput,
       showToast,
       updateSession,
     ],
@@ -1503,6 +1531,10 @@ function App() {
                         onError={(cause) => showToast('error', messageOf(cause))}
                       />
                     )}
+                    <CommandOutputPanel
+                      lines={commandOutput[selectedSession.id]}
+                      onDismiss={() => setSessionOutput(selectedSession.id, [])}
+                    />
                     <ToastStack onDismiss={dismissToast} toasts={visibleToasts} />
                     <Composer
                       key={selectedSession.id}
