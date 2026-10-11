@@ -20,7 +20,12 @@ writeFileSync(
   JSON.stringify({ type: 'session', version: 3, id: sessionId, timestamp: now, cwd: dir }) + '\n',
 )
 
-const child = spawn(PI[0], [PI[1], '--mode', 'rpc', '--session', sessionFile], { cwd: dir })
+const child = spawn(PI[0], [
+  PI[1],
+  '--mode', 'rpc',
+  '--extension', 'E:/z_Working_PI/00-web-pi-livecraft/pi-extensions/skills.ts',
+  '--session', sessionFile,
+], { cwd: dir })
 
 let buffer = ''
 const pending = new Map()
