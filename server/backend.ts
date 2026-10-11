@@ -801,7 +801,6 @@ class HttpError extends Error {
 
 // ── Web search settings (mirrors pi-unsloth-webtools /search-config) ──
 
-const SEARCH_ENGINES = ['duckduckgo', 'startpage', 'yandex', 'brave', 'yahoo']
 const RENDER_ONLY_ENGINES = new Set(['brave', 'yahoo'])
 const DEFAULT_SEARCH_ENGINES = ['duckduckgo', 'startpage']
 
@@ -824,10 +823,7 @@ async function readSearchConfig(): Promise<{ engines: string[]; lightpandaFallba
   for (const section of ['unslothWebTools', 'webSearch']) {
     const value = data[section]
     if (isObject(value) && Array.isArray(value.engines)) {
-      const known = new Set(SEARCH_ENGINES)
-      const listed = [
-        ...new Set(value.engines.filter((e): e is string => typeof e === 'string' && known.has(e))),
-      ]
+      const listed = [...new Set(value.engines.filter((e): e is string => typeof e === 'string'))]
       const fallback = value.lightpandaFallback === true
       let engines = listed.length ? listed : [...DEFAULT_SEARCH_ENGINES]
       if (!fallback) engines = engines.filter((name) => !RENDER_ONLY_ENGINES.has(name))
@@ -841,9 +837,8 @@ async function readSearchConfig(): Promise<{ engines: string[]; lightpandaFallba
 async function saveSearchConfig(
   body: JsonObject,
 ): Promise<{ engines: string[]; lightpandaFallback: boolean }> {
-  const known = new Set(SEARCH_ENGINES)
   const engines = Array.isArray(body.engines)
-    ? [...new Set(body.engines.filter((e): e is string => typeof e === 'string' && known.has(e)))]
+    ? [...new Set(body.engines.filter((e): e is string => typeof e === 'string' && e.length > 0))]
     : []
   const lightpandaFallback = body.lightpandaFallback === true
   if (engines.length === 0) throw new HttpError(400, 'At least one search engine must stay on')

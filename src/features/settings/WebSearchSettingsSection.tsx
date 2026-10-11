@@ -88,6 +88,20 @@ export function WebSearchSettingsSection() {
           <small>{engine.hint}</small>
         </label>
       ))}
+      {config
+        .engines
+        .filter((name) => !ENGINES.some((engine) => engine.name === name))
+        .map((name) => (
+          <label className='voice-row' key={name}>
+            <input
+              checked={config.engines.includes(name)}
+              onChange={(event) => toggleEngine(name, event.target.checked)}
+              type='checkbox'
+            />
+            <span>{name}</span>
+            <small>Added by the extension — kept on save.</small>
+          </label>
+        ))}
       <label className='voice-row'>
         <input
           checked={config.lightpandaFallback}
