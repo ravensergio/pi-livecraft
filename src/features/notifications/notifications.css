@@ -106,7 +106,7 @@
 }
 .command-output {
   width: min(762px, 100%);
-  margin: 0 auto 8px;
+  margin: 0 0 8px;
   border: 1px solid var(--line-strong);
   border-radius: 9px;
   background: var(--surface);
