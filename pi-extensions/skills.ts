@@ -8,6 +8,9 @@
  *
  * Pairs with settings.json "enableSkillCommands": false, which hides the
  * per-skill /skill:<name> commands from the command list.
+ * BACKUP COPY — the live extension is ~/.pi/agent/extensions/skills.ts (auto-loaded
+ * globally for TUI + Livecraft). Do NOT wire this file via --extension, or /skills
+ * registers twice in Livecraft sessions.
  */
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
