@@ -278,6 +278,7 @@ function App() {
   const gitRefreshVersionRef = useRef(0)
   const gitRefreshTimerRef = useRef<number | undefined>(undefined)
   const agentResponsesSentRef = useRef(new Set<string>())
+  const silentCommandRef = useRef<{ name: string; sessionId: string; timer: number } | null>(null)
 
   // Conversation timing and quotas
   const quotaAutoRefreshAtRef = useRef(new Map<string, number>())
@@ -733,6 +734,14 @@ function App() {
           .join('\n')
         speakReply(text)
       }
+      // A bare extension command that produced no visible output gets a 'try help' hint.
+      if (
+        silentCommandRef.current?.sessionId === sessionId
+        && (event.type === 'extension_ui_request' || event.type === 'agent_start')
+      ) {
+        window.clearTimeout(silentCommandRef.current.timer)
+        silentCommandRef.current = null
+      }
       if (event.type === 'session_info_changed') {
         const name = typeof event.name === 'string' && event.name.trim()
           ? event.name.trim()
@@ -1030,6 +1039,27 @@ function App() {
       isCommand: boolean,
     ) => {
       const command: JsonObject = { type: 'prompt', message, images }
+      // Bare extension commands (e.g. /rtk) often only open a TUI-only modal — in
+      // Livecraft they do nothing visible. If no output arrives shortly, hint at help.
+      if (isCommand) {
+        const bare = message.match(/^\/([a-zA-Z][\w-]*)$/)
+        if (bare && snapshot.commands.some((command) => command.name === bare[1])) {
+          window.clearTimeout(silentCommandRef.current?.timer)
+          const name = bare[1]
+          silentCommandRef.current = {
+            name,
+            sessionId: selectedId,
+            timer: window.setTimeout(() => {
+              silentCommandRef.current = null
+              showToast(
+                'notice',
+                `No visible output — /${name} may have subcommands. Try /${name} help.`,
+                selectedId,
+              )
+            }, 2000),
+          }
+        }
+      }
       const isSteering = !isCommand && selectedSessionStatus === 'running' && behavior === 'steer'
       if (selectedSessionStatus === 'running') command.streamingBehavior = behavior
       if (isSteering) addPendingSteering(message)
@@ -1067,6 +1097,7 @@ function App() {
       sessions,
       showToast,
       snapshot.messages,
+      snapshot.commands,
     ],
   )
   const handleComposerAbort = useCallback(() => sendPiCommand(selectedId, { type: 'abort' }), [
