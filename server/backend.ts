@@ -496,7 +496,11 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       piCommand(sessionId, { type: 'get_session_stats' }),
       piCommand(sessionId, { type: 'get_fork_messages' }),
     ])
-    const commandList = arrayData(commands, 'commands')
+    // pi's RPC get_commands ignores enableSkillCommands (TUI-only setting) —
+    // hide per-skill commands here; /skills extension + hand-typed /skill:name still work
+    const commandList = arrayData(commands, 'commands').filter(
+      (command) => !(typeof command?.name === 'string' && command.name.startsWith('skill:')),
+    )
     const forkEntryIds = new Set(
       arrayData(forkMessages, 'messages').flatMap((message) =>
         typeof message.entryId === 'string' ? [message.entryId] : []
