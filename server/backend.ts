@@ -859,15 +859,14 @@ async function saveSearchConfig(
     target = {}
     data.webSearch = target
   }
-  // With fallback off, GET hides render-only engines; keep the ones the file still lists.
-  if (!lightpandaFallback) {
-    const previous = Array.isArray(target.engines) ? target.engines : []
-    const kept = previous.filter(
-      (name): name is string =>
-        typeof name === 'string' && RENDER_ONLY_ENGINES.has(name) && !engines.includes(name),
-    )
-    if (kept.length > 0) engines = [...engines, ...kept]
-  }
+  // The GET hides render-only engines when fallback is off; a save must never delete
+  // engines the UI cannot show, so keep the names the file already lists.
+  const previous = Array.isArray(target.engines) ? target.engines : []
+  const kept = previous.filter(
+    (name): name is string =>
+      typeof name === 'string' && RENDER_ONLY_ENGINES.has(name) && !engines.includes(name),
+  )
+  if (kept.length > 0) engines = [...engines, ...kept]
   target.engines = engines
   target.lightpandaFallback = lightpandaFallback
   const file = searchConfigFile()

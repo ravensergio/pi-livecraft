@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import type { JsonObject } from '../shared/types.ts'
 import test from 'node:test'
 import {
   activeSessionMessages,
@@ -79,10 +80,12 @@ test('stores an assembled assistant message for delta-only replay', () => {
     assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'world' },
   }, 4)
 
-  assert.deepEqual(live.snapshot().at(-1)?.data.message, {
+  const stored = live.snapshot().at(-1)?.data.message as JsonObject | undefined
+  assert.deepEqual(stored && { role: stored.role, content: stored.content }, {
     role: 'assistant',
     content: [{ type: 'text', text: 'Hello world' }],
   })
+  assert.equal(typeof stored?.timestamp, 'number')
 })
 
 test('keeps the active conversation before and after compaction', () => {

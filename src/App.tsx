@@ -1018,7 +1018,11 @@ function App() {
     [composerExtensionStatuses, moveStatusChip],
   )
   const handleStatusChipReorderHint = useCallback(
-    (message: string) => showToast('notice', message),
+    (message: string) => {
+      if (window.localStorage.getItem('pi-livecraft.status-chip-hint.v1') === '1') return
+      window.localStorage.setItem('pi-livecraft.status-chip-hint.v1', '1')
+      showToast('notice', message)
+    },
     [showToast],
   )
   const requestComposerAgentOptions = useCallback(() => {

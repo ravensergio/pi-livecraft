@@ -29,8 +29,9 @@ test('assembles assistant text from RPC streaming deltas', () => {
     ]
   ) message = assistantMessageAfterEvent(message, event)
 
-  assert.deepEqual(message, {
+  assert.deepEqual(message && { role: message.role, content: message.content }, {
     role: 'assistant',
     content: [{ type: 'text', text: 'Hello world' }],
   })
+  assert.equal(typeof message?.timestamp, 'number')
 })

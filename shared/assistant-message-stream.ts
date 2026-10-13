@@ -79,7 +79,8 @@ export function assistantMessageAfterEvent(
 }
 
 function assistantMessage(value: unknown): JsonObject | null {
-  return isObject(value) && value.role === 'assistant' ? value : null
+  if (!isObject(value) || value.role !== 'assistant') return null
+  return typeof value.timestamp === 'number' ? value : { ...value, timestamp: Date.now() }
 }
 
 function textInBlock(value: unknown): string {
