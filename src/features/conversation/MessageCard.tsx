@@ -232,7 +232,7 @@ function renderContent(
 
 /** Collapsible thinking: a "Thinking" toggle with a one-line teaser when closed.
  *  In auto mode it follows streaming (open while live, closed once the message ends);
- *  expanded/collapsed modes keep their default until the user toggles a block. */
+ *  open shows every block, closed hides every one; a manual toggle wins over the mode. */
 function ReasoningBlock(
   { children, copyablePre, live = false, mode = 'auto', onError }: {
     children: string
@@ -242,18 +242,17 @@ function ReasoningBlock(
     onError?: (cause: unknown) => void
   },
 ) {
-  // History blocks always mount closed; "expanded" only opens blocks that are
-  // already streaming when they appear (a reload must not re-open the past).
-  const [open, setOpen] = useState((mode === 'auto' || mode === 'expanded') && live)
+  // Open mode: every block mounts open. Auto: only the live block follows streaming.
+  const [open, setOpen] = useState(mode === 'expanded' || (mode === 'auto' && live))
   const [touched, setTouched] = useState(false)
   const teaser = useTypewriterText(children)
 
-  // Mode switches apply to past blocks only for hidden/auto (cheap: closing or
-  // following the stream). "Expanded" never re-opens history — it only affects
-  // blocks created from that moment on. Manually toggled blocks keep their state.
+  // Mode switches apply to every untouched block: open re-opens, closed closes,
+  // auto follows the stream. Manually toggled blocks keep their state.
   useEffect(() => {
-    if (touched || mode === 'expanded') return
-    setOpen(mode === 'auto' && live)
+    if (touched) return
+    if (mode === 'expanded') setOpen(true)
+    else setOpen(mode === 'auto' && live)
   }, [live, mode, touched])
 
   return (
