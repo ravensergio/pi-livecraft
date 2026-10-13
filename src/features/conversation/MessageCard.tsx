@@ -203,6 +203,7 @@ function renderContent(
               // it opens when streaming starts and collapses as soon as text, a tool call,
               // or the next thinking segment begins.
               live={live && contentIndex === content.length - 1}
+              currentTurn={live}
               mode={reasoningMode}
               onError={onError}
             >
@@ -232,28 +233,35 @@ function renderContent(
 
 /** Collapsible thinking: a "Thinking" toggle with a one-line teaser when closed.
  *  In auto mode it follows streaming (open while live, closed once the message ends);
- *  open shows every block, closed hides every one; a manual toggle wins over the mode. */
+ *  open keeps a turn's blocks open from the moment it is hit (older turns stay closed);
+ *  closed hides every one; a manual toggle wins over the mode. */
 function ReasoningBlock(
-  { children, copyablePre, live = false, mode = 'auto', onError }: {
+  { children, copyablePre, currentTurn = false, live = false, mode = 'auto', onError }: {
     children: string
     copyablePre: boolean
     live?: boolean
+    currentTurn?: boolean
     mode?: ReasoningMode
     onError?: (cause: unknown) => void
   },
 ) {
-  // Open mode: every block mounts open. Auto: only the live block follows streaming.
-  const [open, setOpen] = useState(mode === 'expanded' || (mode === 'auto' && live))
+  // Open mode: a block opens while its turn is active and stays open afterwards;
+  // older turns (and anything mounted from history after a reload) stay closed.
+  const [open, setOpen] = useState((mode === 'auto' || mode === 'expanded') && live)
   const [touched, setTouched] = useState(false)
   const teaser = useTypewriterText(children)
 
-  // Mode switches apply to every untouched block: open re-opens, closed closes,
-  // auto follows the stream. Manually toggled blocks keep their state.
+  // Mode switches apply to every untouched block: open opens the current turn's
+  // segments (and keeps them open after the turn ends), closed closes, auto follows
+  // the stream. Manually toggled blocks keep their state.
   useEffect(() => {
     if (touched) return
-    if (mode === 'expanded') setOpen(true)
-    else setOpen(mode === 'auto' && live)
-  }, [live, mode, touched])
+    if (mode === 'expanded') {
+      if (currentTurn) setOpen(true)
+    } else {
+      setOpen(mode === 'auto' && live)
+    }
+  }, [live, mode, touched, currentTurn])
 
   return (
     <div className={`reasoning-block${open ? ' open' : ''}`}>
