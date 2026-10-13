@@ -982,7 +982,15 @@ function App() {
   // Stable references for the memoized Composer — Object.values() and an inline
   // arrow would break its memo and re-render it on every stream batch.
   const composerExtensionStatuses = useMemo(
-    () => (selectedSession ? Object.values(extensionStatuses[selectedSession.id] ?? {}) : []),
+    () => {
+      if (!selectedSession) return []
+      // Alphabetical by status key: extensions emit setStatus at different times per
+      // spawn, so insertion order is random — sort for a stable chip order.
+      return Object
+        .entries(extensionStatuses[selectedSession.id] ?? {})
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([, value]) => value)
+    },
     [extensionStatuses, selectedSession],
   )
   const requestComposerAgentOptions = useCallback(() => {
