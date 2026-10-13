@@ -290,6 +290,15 @@ function ReasoningBlock(
         </svg>
         <span className='reasoning-label'>Thinking</span>
         {!open && <span className='reasoning-teaser'>{teaser}</span>}
+        {import.meta.env.DEV && (
+          <span
+            className='reasoning-debug'
+            style={{ fontFamily: 'monospace', opacity: 0.65, marginLeft: 8 }}
+          >
+            mode={mode} cur={currentTurn ? 1 : 0} last={lastTurn ? 1 : 0} live={live ? 1 : 0}{' '}
+            touched={touched ? 1 : 0} open={open ? 1 : 0}
+          </span>
+        )}
       </button>
       {open && (
         <div className='reasoning'>
