@@ -278,7 +278,7 @@ function App() {
   const gitRefreshVersionRef = useRef(0)
   const gitRefreshTimerRef = useRef<number | undefined>(undefined)
   const agentResponsesSentRef = useRef(new Set<string>())
-  const silentCommandRef = useRef<{ name: string; sessionId: string; timer: number } | null>(null)
+  const silentCommandRef = useRef(new Map<string, { name: string; timer: number }>())
 
   // Conversation timing and quotas
   const quotaAutoRefreshAtRef = useRef(new Map<string, number>())
@@ -735,12 +735,12 @@ function App() {
         speakReply(text)
       }
       // A bare extension command that produced no visible output gets a 'try help' hint.
-      if (
-        silentCommandRef.current?.sessionId === sessionId
-        && (event.type === 'extension_ui_request' || event.type === 'agent_start')
-      ) {
-        window.clearTimeout(silentCommandRef.current.timer)
-        silentCommandRef.current = null
+      if (event.type === 'extension_ui_request' || event.type === 'agent_start') {
+        const pending = silentCommandRef.current.get(sessionId)
+        if (pending) {
+          window.clearTimeout(pending.timer)
+          silentCommandRef.current.delete(sessionId)
+        }
       }
       if (event.type === 'session_info_changed') {
         const name = typeof event.name === 'string' && event.name.trim()
@@ -1044,20 +1044,21 @@ function App() {
       if (isCommand) {
         const bare = message.match(/^\/([a-zA-Z][\w-]*)$/)
         if (bare && snapshot.commands.some((command) => command.name === bare[1])) {
-          window.clearTimeout(silentCommandRef.current?.timer)
+          const pending = silentCommandRef.current.get(selectedId)
+          if (pending) window.clearTimeout(pending.timer)
           const name = bare[1]
-          silentCommandRef.current = {
+          silentCommandRef.current.set(selectedId, {
             name,
-            sessionId: selectedId,
             timer: window.setTimeout(() => {
-              silentCommandRef.current = null
+              silentCommandRef.current.delete(selectedId)
+              // Global toast: the hint is still useful if you switched sessions meanwhile.
               showToast(
                 'notice',
                 `No visible output — /${name} may have subcommands. Try /${name} help.`,
-                selectedId,
+                null,
               )
             }, 2000),
-          }
+          })
         }
       }
       const isSteering = !isCommand && selectedSessionStatus === 'running' && behavior === 'steer'
