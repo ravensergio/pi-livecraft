@@ -301,10 +301,13 @@
   border-color: color-mix(in srgb, var(--warning) 38%, var(--line-strong));
   background: color-mix(in srgb, var(--warning) 9%, var(--surface));
 }
-/* Wrapper is invisible on desktop (display: contents); on phones it becomes
-   a single swipeable row — see responsive.css. */
+/* The pills wrap to a second row on desktop when there are too many;
+   on phones the same wrapper becomes a single swipeable row — see responsive.css. */
 .ext-status-chips {
-  display: contents;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
 }
 
 /* Extension status entries (pi-telegram-plus etc.) — read-only pills. */
