@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, type ReactNode } from 'react'
+import { memo, useState, type ReactNode } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { isObject } from '../../../shared/is-object.ts'
 import { CopyButton } from './CopyButton.tsx'
@@ -257,23 +257,22 @@ function ReasoningBlock(
     onError?: (cause: unknown) => void
   },
 ) {
-  // Open mode: a block opens while its turn is active and stays open afterwards;
-  // older turns (and anything mounted from history after a reload) stay closed.
-  const [open, setOpen] = useState((mode === 'auto' || mode === 'expanded') && live)
+  // Open/closed is computed from the props at render time: no mount seeding, no effects.
+  // Open mode keeps the current and the last turn's blocks open (older turns stay
+  // closed); auto follows the stream (open only while the segment is the last part);
+  // closed hides all. Every block of a turn shares the message-level flags
+  // (currentTurn / lastTurn), so blocks of one turn can never disagree.
   const [touched, setTouched] = useState(false)
+  const [userOpen, setUserOpen] = useState(false)
   const teaser = useTypewriterText(children)
 
-  // Mode switches apply to every untouched block: open opens the live turn's and the
-  // last completed turn's segments (and keeps them open after the turn ends), closed
-  // closes, auto follows the stream. Manually toggled blocks keep their state.
-  useEffect(() => {
-    if (touched) return
-    if (mode === 'expanded') {
-      if (currentTurn || lastTurn) setOpen(true)
-    } else {
-      setOpen(mode === 'auto' && live)
-    }
-  }, [live, mode, touched, currentTurn])
+  const open = touched
+    ? userOpen
+    : mode === 'expanded'
+    ? currentTurn || lastTurn
+    : mode === 'auto'
+    ? live
+    : false
 
   return (
     <div className={`reasoning-block${open ? ' open' : ''}`}>
@@ -282,7 +281,7 @@ function ReasoningBlock(
         className='reasoning-toggle'
         onClick={() => {
           setTouched(true)
-          setOpen((current) => !current)
+          setUserOpen(!open)
         }}
         type='button'
       >

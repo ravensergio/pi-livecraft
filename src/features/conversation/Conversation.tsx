@@ -581,6 +581,7 @@ export function Conversation(
                       <MessageCard
                         key='message'
                         live={entry.key === streamingLiveKey}
+                        isLast={entryIndex === renderedMessageEntries.length - 1}
                         message={part.message}
                         onError={onError}
                         onFork={onFork}
