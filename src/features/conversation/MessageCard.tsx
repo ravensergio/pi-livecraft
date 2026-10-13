@@ -14,8 +14,18 @@ export type ReasoningMode = 'auto' | 'expanded' | 'collapsed'
 /** Renders a visible protocol message with the default or custom presentation. */
 export const MessageCard = memo(
   function MessageCard(
-    { isLast = false, live = false, message, onError, onFork, onTree, reasoningMode = 'auto' }: {
+    {
+      isLast = false,
+      live = false,
+      message,
+      onError,
+      onFork,
+      onTree,
+      reasoningMode = 'auto',
+      openSince = 0,
+    }: {
       isLast?: boolean
+      openSince?: number
       live?: boolean
       message: JsonObject
       onError: (cause: unknown) => void
@@ -35,6 +45,7 @@ export const MessageCard = memo(
         onFork={onFork}
         onTree={onTree}
         reasoningMode={reasoningMode}
+        openSince={openSince}
       />
     )
   },
@@ -42,7 +53,7 @@ export const MessageCard = memo(
 
 const DefaultMessageCard = memo(
   function DefaultMessageCard(
-    { isLast = false, live, message, onError, onFork, onTree, reasoningMode }: {
+    { isLast = false, live, message, onError, onFork, onTree, reasoningMode, openSince = 0 }: {
       isLast?: boolean
       live: boolean
       message: JsonObject
@@ -50,6 +61,7 @@ const DefaultMessageCard = memo(
       onFork: (entryId: string) => Promise<boolean>
       onTree: (entryId: string) => Promise<boolean>
       reasoningMode: ReasoningMode
+      openSince?: number
     },
   ) {
     const role = String(message.role)
@@ -61,6 +73,10 @@ const DefaultMessageCard = memo(
       : undefined
     const entryId = typeof message.entryId === 'string' ? message.entryId : undefined
     // Branch button: user bubbles and final assistant replies (no tool calls).
+    // Open mode: every turn that started after OPEN was hit stays open (timestamp rule).
+    const lastTurn = openSince > 0
+      && typeof message.timestamp === 'number'
+      && message.timestamp >= openSince
     const hasToolCalls = Array.isArray(message.content)
       && message.content.some((part) => isObject(part) && part.type === 'toolCall')
     const showTreeButton = entryId !== undefined
@@ -86,6 +102,7 @@ const DefaultMessageCard = memo(
             live,
             reasoningMode,
             isLast,
+            lastTurn,
           )}
         </div>
         {role === 'user' && time && (
@@ -173,6 +190,7 @@ function renderContent(
   live = false,
   reasoningMode: ReasoningMode = 'auto',
   isLast = false,
+  lastTurn = false,
 ): ReactNode {
   if (typeof content === 'string') {
     const markdown = (
@@ -206,7 +224,7 @@ function renderContent(
               // or the next thinking segment begins.
               live={live && contentIndex === content.length - 1}
               currentTurn={live}
-              lastTurn={isLast}
+              lastTurn={isLast || lastTurn}
               mode={reasoningMode}
               onError={onError}
             >

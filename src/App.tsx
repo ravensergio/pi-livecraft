@@ -159,6 +159,13 @@ function App() {
     const stored = window.localStorage.getItem('pi-livecraft.reasoning-mode')
     return stored === 'expanded' || stored === 'collapsed' ? stored : 'auto'
   })
+  const [reasoningOpenSince, setReasoningOpenSince] = useState<number>(() => {
+    const saved = Number(window.localStorage.getItem('pi-livecraft.reasoning-open-since'))
+    if (Number.isFinite(saved) && saved > 0) return saved
+    return window.localStorage.getItem('pi-livecraft.reasoning-mode') === 'expanded'
+      ? Date.now()
+      : 0
+  })
   const cycleReasoningMode = useCallback((): void => {
     setReasoningMode((current) => {
       const next: ReasoningMode = current === 'auto'
@@ -167,6 +174,11 @@ function App() {
         ? 'collapsed'
         : 'auto'
       window.localStorage.setItem('pi-livecraft.reasoning-mode', next)
+      if (next === 'expanded') {
+        const since = Date.now()
+        window.localStorage.setItem('pi-livecraft.reasoning-open-since', String(since))
+        setReasoningOpenSince(since)
+      }
       return next
     })
   }, [])
@@ -1507,6 +1519,7 @@ function App() {
                     activity={displayedActivity}
                     agentName={selectedSession.activeAgent}
                     reasoningMode={reasoningMode}
+                    reasoningOpenSince={reasoningOpenSince}
                     conversationView={conversationView}
                     key={selectedSession.id}
                     liveMessages={liveMessages}

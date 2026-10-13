@@ -52,6 +52,7 @@ export function Conversation(
     activity,
     agentName,
     reasoningMode = 'auto',
+    reasoningOpenSince = 0,
     messages,
     liveMessages,
     conversationView,
@@ -71,6 +72,7 @@ export function Conversation(
     activity: Activity | null
     agentName?: string
     reasoningMode?: ReasoningMode
+    reasoningOpenSince?: number
     messages: JsonObject[]
     liveMessages: LiveMessage[]
     conversationView: 'simple' | 'semi-detailed' | 'detailed'
@@ -525,6 +527,7 @@ export function Conversation(
                     onFork={onFork}
                     onTree={onTree}
                     reasoningMode={reasoningMode}
+                    openSince={reasoningOpenSince}
                   />
                 )}
                 {calls.map((call) => {
@@ -587,6 +590,7 @@ export function Conversation(
                         onFork={onFork}
                         onTree={onTree}
                         reasoningMode={reasoningMode}
+                        openSince={reasoningOpenSince}
                       />
                     )
                     : null
