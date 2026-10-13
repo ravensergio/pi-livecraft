@@ -809,17 +809,21 @@ function searchConfigFile(): string {
   return join(agentDir, 'settings.json')
 }
 
-async function readAgentSettings(): Promise<JsonObject> {
+async function readAgentSettings(): Promise<JsonObject | null> {
+  let raw: string
   try {
-    const data: unknown = JSON.parse(await readFile(searchConfigFile(), 'utf-8'))
-    return isObject(data) ? data : {}
-  } catch {
-    return {}
+    raw = await readFile(searchConfigFile(), 'utf-8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+    throw new HttpError(500, 'Could not read agent settings')
   }
+  const data: unknown = JSON.parse(raw)
+  if (!isObject(data)) throw new HttpError(500, 'Agent settings is not a JSON object')
+  return data
 }
 
 async function readSearchConfig(): Promise<{ engines: string[]; lightpandaFallback: boolean }> {
-  const data = await readAgentSettings()
+  const data = (await readAgentSettings()) ?? {}
   for (const section of ['unslothWebTools', 'webSearch']) {
     const value = data[section]
     if (isObject(value) && Array.isArray(value.engines)) {
@@ -837,12 +841,12 @@ async function readSearchConfig(): Promise<{ engines: string[]; lightpandaFallba
 async function saveSearchConfig(
   body: JsonObject,
 ): Promise<{ engines: string[]; lightpandaFallback: boolean }> {
-  const engines = Array.isArray(body.engines)
+  let engines = Array.isArray(body.engines)
     ? [...new Set(body.engines.filter((e): e is string => typeof e === 'string' && e.length > 0))]
     : []
   const lightpandaFallback = body.lightpandaFallback === true
   if (engines.length === 0) throw new HttpError(400, 'At least one search engine must stay on')
-  const data = await readAgentSettings()
+  const data = (await readAgentSettings()) ?? {}
   let target: JsonObject | undefined
   for (const section of ['unslothWebTools', 'webSearch']) {
     const value = data[section]
@@ -854,6 +858,15 @@ async function saveSearchConfig(
   if (!target) {
     target = {}
     data.webSearch = target
+  }
+  // With fallback off, GET hides render-only engines; keep the ones the file still lists.
+  if (!lightpandaFallback) {
+    const previous = Array.isArray(target.engines) ? target.engines : []
+    const kept = previous.filter(
+      (name): name is string =>
+        typeof name === 'string' && RENDER_ONLY_ENGINES.has(name) && !engines.includes(name),
+    )
+    if (kept.length > 0) engines = [...engines, ...kept]
   }
   target.engines = engines
   target.lightpandaFallback = lightpandaFallback
