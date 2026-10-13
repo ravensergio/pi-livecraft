@@ -1005,6 +1005,10 @@ function App() {
     },
     [composerExtensionStatuses, moveStatusChip],
   )
+  const handleStatusChipReorderHint = useCallback(
+    (message: string) => showToast('notice', message),
+    [showToast],
+  )
   const requestComposerAgentOptions = useCallback(() => {
     if (selectedId) fetchAgentOptions(selectedId)
   }, [fetchAgentOptions, selectedId])
@@ -1614,6 +1618,7 @@ function App() {
                       onReasoningModeChange={cycleReasoningMode}
                       extensionStatuses={composerExtensionStatuses}
                       onStatusChipReorder={handleStatusChipReorder}
+                      onStatusChipReorderHint={handleStatusChipReorderHint}
                       messageHistory={messageHistory}
                       onSend={handleComposerSend}
                       onAbort={handleComposerAbort}

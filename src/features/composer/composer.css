@@ -336,6 +336,11 @@
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 45%, transparent);
 }
+.ext-status-chip.pending {
+  color: var(--ink);
+  border-color: var(--success);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 35%, transparent);
+}
 .composer-session, .composer-stats {
   display: flex;
   align-items: center;

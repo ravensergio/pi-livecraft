@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import type { SessionSummary } from '../../../../shared/types.ts'
 // import { SessionInfo } from './SessionInfo.tsx'
 import { SessionStats } from './SessionStats.tsx'
@@ -26,6 +26,7 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
     contextPercentValue,
     extensionStatuses = [],
     onReorder,
+    onReorderHint,
   }: {
     session: SessionSummary
     running: boolean
@@ -36,8 +37,21 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
     contextPercentValue: number | null
     extensionStatuses?: Array<{ key: string; text: string; tone: StatusTone }>
     onReorder?: (fromKey: string, toKey: string) => void
+    onReorderHint?: (message: string) => void
   },
 ) {
+  const [pendingKey, setPendingKey] = useState<string | null>(null)
+
+  // Tapping outside the pills cancels a pending move.
+  useEffect(() => {
+    if (pendingKey === null) return
+    const cancel = (event: MouseEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest('.ext-status-chips'))
+        setPendingKey(null)
+    }
+    document.addEventListener('click', cancel)
+    return () => document.removeEventListener('click', cancel)
+  }, [pendingKey])
   return (
     <div className='composer-info' aria-label='Session information'>
       {compacting && (
@@ -50,7 +64,20 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
       <div className='ext-status-chips'>
         {extensionStatuses.map(({ key, text, tone }) => (
           <span
-            className={tone ? `ext-status-chip ${tone}` : extensionStatusTone(text)}
+            className={`${tone ? `ext-status-chip ${tone}` : extensionStatusTone(text)}${
+              pendingKey === key ? ' pending' : ''
+            }`}
+            onClick={() => {
+              if (pendingKey === null) {
+                setPendingKey(key)
+                onReorderHint?.(`Move "${text}" — tap where it should go. Tap it again to cancel.`)
+              } else if (pendingKey === key) {
+                setPendingKey(null)
+              } else {
+                onReorder?.(pendingKey, key)
+                setPendingKey(null)
+              }
+            }}
             draggable
             key={key}
             onDragStart={(event) => {

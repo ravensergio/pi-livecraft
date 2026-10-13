@@ -74,6 +74,7 @@ export const Composer = memo(function Composer({
   onReasoningModeChange,
   extensionStatuses = [],
   onStatusChipReorder,
+  onStatusChipReorderHint,
   messageHistory = [],
 }: {
   session: SessionSummary
@@ -117,6 +118,7 @@ export const Composer = memo(function Composer({
   onReasoningModeChange?: () => void
   extensionStatuses?: Array<{ key: string; text: string; tone: StatusTone }>
   onStatusChipReorder?: (fromKey: string, toKey: string) => void
+  onStatusChipReorderHint?: (message: string) => void
   messageHistory?: string[]
 }) {
   const draftStorageKey = `pi-livecraft.composer-draft.${session.id}`
@@ -817,6 +819,7 @@ export const Composer = memo(function Composer({
           contextPercentValue={contextPercentValue}
           extensionStatuses={extensionStatuses}
           onReorder={onStatusChipReorder}
+          onReorderHint={onStatusChipReorderHint}
         />
       </div>
       {promptSave && (
