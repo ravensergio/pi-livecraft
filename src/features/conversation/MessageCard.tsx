@@ -85,6 +85,7 @@ const DefaultMessageCard = memo(
             onError,
             live,
             reasoningMode,
+            isLast,
           )}
         </div>
         {role === 'user' && time && (
@@ -171,6 +172,7 @@ function renderContent(
   onError?: (cause: unknown) => void,
   live = false,
   reasoningMode: ReasoningMode = 'auto',
+  isLast = false,
 ): ReactNode {
   if (typeof content === 'string') {
     const markdown = (
@@ -204,6 +206,7 @@ function renderContent(
               // or the next thinking segment begins.
               live={live && contentIndex === content.length - 1}
               currentTurn={live}
+              lastTurn={isLast}
               mode={reasoningMode}
               onError={onError}
             >
@@ -236,11 +239,20 @@ function renderContent(
  *  open keeps a turn's blocks open from the moment it is hit (older turns stay closed);
  *  closed hides every one; a manual toggle wins over the mode. */
 function ReasoningBlock(
-  { children, copyablePre, currentTurn = false, live = false, mode = 'auto', onError }: {
+  {
+    children,
+    copyablePre,
+    currentTurn = false,
+    lastTurn = false,
+    live = false,
+    mode = 'auto',
+    onError,
+  }: {
     children: string
     copyablePre: boolean
     live?: boolean
     currentTurn?: boolean
+    lastTurn?: boolean
     mode?: ReasoningMode
     onError?: (cause: unknown) => void
   },
@@ -251,13 +263,13 @@ function ReasoningBlock(
   const [touched, setTouched] = useState(false)
   const teaser = useTypewriterText(children)
 
-  // Mode switches apply to every untouched block: open opens the current turn's
-  // segments (and keeps them open after the turn ends), closed closes, auto follows
-  // the stream. Manually toggled blocks keep their state.
+  // Mode switches apply to every untouched block: open opens the live turn's and the
+  // last completed turn's segments (and keeps them open after the turn ends), closed
+  // closes, auto follows the stream. Manually toggled blocks keep their state.
   useEffect(() => {
     if (touched) return
     if (mode === 'expanded') {
-      if (currentTurn) setOpen(true)
+      if (currentTurn || lastTurn) setOpen(true)
     } else {
       setOpen(mode === 'auto' && live)
     }
