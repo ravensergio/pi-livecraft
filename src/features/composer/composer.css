@@ -310,9 +310,10 @@
   min-width: 0;
 }
 
-/* Extension status entries (pi-telegram-plus etc.) — read-only pills. */
+/* Extension status entries (pi-telegram-plus etc.) — drag to reorder (order persists). */
 .ext-status-chip {
   flex: none;
+  cursor: grab;
   max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;

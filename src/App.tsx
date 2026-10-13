@@ -34,6 +34,7 @@ import type {
 import { isObject } from '../shared/is-object.ts'
 import { Composer } from './features/composer/Composer.tsx'
 import { toneFromAnsi, type StatusTone } from './features/composer/status-bar/status-tone.ts'
+import { useStatusChipOrder } from './features/composer/status-bar/status-order.ts'
 import { copyText } from './lib/clipboard.ts'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { CommandOutputPanel } from './features/notifications/CommandOutputPanel.tsx'
@@ -979,19 +980,30 @@ function App() {
   // Selected session and loading state
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const selectedSessionId = selectedSession?.id
+  const { order: statusChipOrder, move: moveStatusChip } = useStatusChipOrder()
   // Stable references for the memoized Composer — Object.values() and an inline
   // arrow would break its memo and re-render it on every stream batch.
   const composerExtensionStatuses = useMemo(
     () => {
       if (!selectedSession) return []
-      // Alphabetical by status key: extensions emit setStatus at different times per
-      // spawn, so insertion order is random — sort for a stable chip order.
+      // The user's drag order first, then alphabetical: extensions emit setStatus at
+      // different times per spawn, so insertion order is random.
+      const position = (key: string): number => {
+        const index = statusChipOrder.indexOf(key)
+        return index === -1 ? Number.MAX_SAFE_INTEGER : index
+      }
       return Object
         .entries(extensionStatuses[selectedSession.id] ?? {})
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([, value]) => value)
+        .sort(([a], [b]) => position(a) - position(b) || (a < b ? -1 : a > b ? 1 : 0))
+        .map(([key, value]) => ({ key, ...value }))
     },
-    [extensionStatuses, selectedSession],
+    [extensionStatuses, selectedSession, statusChipOrder],
+  )
+  const handleStatusChipReorder = useCallback(
+    (fromKey: string, toKey: string) => {
+      moveStatusChip(fromKey, toKey, composerExtensionStatuses.map((chip) => chip.key))
+    },
+    [composerExtensionStatuses, moveStatusChip],
   )
   const requestComposerAgentOptions = useCallback(() => {
     if (selectedId) fetchAgentOptions(selectedId)
@@ -1601,6 +1613,7 @@ function App() {
                       reasoningMode={reasoningMode}
                       onReasoningModeChange={cycleReasoningMode}
                       extensionStatuses={composerExtensionStatuses}
+                      onStatusChipReorder={handleStatusChipReorder}
                       messageHistory={messageHistory}
                       onSend={handleComposerSend}
                       onAbort={handleComposerAbort}

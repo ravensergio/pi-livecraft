@@ -25,6 +25,7 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
     contextPercent,
     contextPercentValue,
     extensionStatuses = [],
+    onReorder,
   }: {
     session: SessionSummary
     running: boolean
@@ -33,7 +34,8 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
     contextTokens: string
     contextPercent: string
     contextPercentValue: number | null
-    extensionStatuses?: Array<{ text: string; tone: StatusTone }>
+    extensionStatuses?: Array<{ key: string; text: string; tone: StatusTone }>
+    onReorder?: (fromKey: string, toKey: string) => void
   },
 ) {
   return (
@@ -46,10 +48,21 @@ export const ComposerStatusBar = memo(function ComposerStatusBar(
       {/* Session name + folder live in the sidebar; keep only the "Pi is working" dot here. */}
       {/* <SessionInfo name={session.name} cwd={session.cwd} active={running} /> */}
       <div className='ext-status-chips'>
-        {extensionStatuses.map(({ text, tone }, index) => (
+        {extensionStatuses.map(({ key, text, tone }) => (
           <span
             className={tone ? `ext-status-chip ${tone}` : extensionStatusTone(text)}
-            key={`${index}-${text}`}
+            draggable
+            key={key}
+            onDragStart={(event) => {
+              event.dataTransfer.setData('text/plain', key)
+              event.dataTransfer.effectAllowed = 'move'
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault()
+              const fromKey = event.dataTransfer.getData('text/plain')
+              if (fromKey && fromKey !== key) onReorder?.(fromKey, key)
+            }}
             title={text}
           >
             {text}
