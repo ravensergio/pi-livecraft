@@ -1,5 +1,7 @@
 # Quote Selection Plan — "ask about this" from reply text
 
+Status: DONE (2026-10-17). Implemented as `src/features/conversation/SelectionQuote.tsx`.
+
 ## Idea
 Select text in an assistant reply → a small floating hint appears near the
 selection → click it → the selection lands in the composer as a markdown

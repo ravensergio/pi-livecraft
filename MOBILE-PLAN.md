@@ -1,5 +1,7 @@
 # Mobile Layout Plan
 
+Status: DONE (2026-10-17). All phases implemented and verified on Raven's phone.
+
 Goal: Livecraft is usable on a phone (390–430px wide): readable, tappable,
 keyboard-friendly. Access is already solved — `dev:frontend` runs
 `vite --host 0.0.0.0`, so any device on the home LAN or the OpenVPN tunnel
