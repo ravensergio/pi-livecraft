@@ -359,6 +359,10 @@
   color: var(--muted);
   vertical-align: 1px;
 }
+.pin-icon {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
 
 .session-list {
   display: flex;

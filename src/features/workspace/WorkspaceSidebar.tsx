@@ -874,19 +874,13 @@ function PinIcon() {
   return (
     <svg
       aria-hidden='true'
-      fill='none'
-      height='14'
-      stroke='currentColor'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-      strokeWidth='1.5'
+      className='pin-icon'
+      fill='currentColor'
+      height='13'
       viewBox='0 0 24 24'
-      width='14'
+      width='13'
     >
-      <path d='m9 3 6 6' />
-      <path d='m5 8 11 11' />
-      <path d='m14 4 6 6-4 1-4 4-1 4-6-6 4-1 4-4 1-4Z' />
-      <path d='m12 16-5 5' />
+      <path d='M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z' />
     </svg>
   )
 }
