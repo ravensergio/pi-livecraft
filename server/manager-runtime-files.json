@@ -5,6 +5,7 @@
     "server/jsonl.ts",
     "server/pi-process.ts",
     "server/pi-launcher.ts",
+    "server/pi-session-store.ts",
     "server/prompt-improvement.ts",
     "server/run-isolated-prompt.ts",
     "shared/is-object.ts"
