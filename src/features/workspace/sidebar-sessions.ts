@@ -11,11 +11,12 @@ export interface SessionActionTarget {
 
 export type PinnedSession = Pick<RecentSession, 'cwd' | 'name' | 'sessionPath'>
 
-/** Adds pending sessions and orders the visible list by latest activity. */
+/** Adds pending sessions and orders the visible list: pinned sessions first, then latest activity. */
 export function sidebarSessions(
   recentSessions: RecentSession[],
   workspacePath: string,
   sentSessions: RecentSession[] = [],
+  pinnedSessionPaths: ReadonlySet<string> = new Set(),
 ): RecentSession[] {
   const recentIds = new Set(recentSessions.map((session) => session.id))
   const recentPaths = new Set(recentSessions.map((session) => session.sessionPath))
@@ -24,7 +25,11 @@ export function sidebarSessions(
   )
   return [...pending, ...recentSessions]
     .filter(({ cwd }) => cwd === workspacePath)
-    .sort((left, right) => right.updatedAt - left.updatedAt)
+    .sort((left, right) => {
+      const rank = (session: RecentSession): number =>
+        pinnedSessionPaths.has(session.sessionPath) ? 0 : 1
+      return rank(left) - rank(right) || right.updatedAt - left.updatedAt
+    })
 }
 
 /** Picks the next visible active session after closing the selected one. */
@@ -34,8 +39,10 @@ export function nextActiveSessionId(
   recentSessions: RecentSession[],
   workspacePath: string,
   sentSessions: RecentSession[] = [],
+  pinnedSessionPaths: ReadonlySet<string> = new Set(),
 ): string | null {
-  const activeIds = sidebarSessions(recentSessions, workspacePath, sentSessions).flatMap(
+  const visible = sidebarSessions(recentSessions, workspacePath, sentSessions, pinnedSessionPaths)
+  const activeIds = visible.flatMap(
     (recent) => {
       const active = sessions.find((session) =>
         session.sessionPath === recent.sessionPath && session.status !== 'exited'

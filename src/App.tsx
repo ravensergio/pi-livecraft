@@ -1251,6 +1251,12 @@ function App() {
     setComposerDraftRequest((current) => current?.id === id ? undefined : current)
   }, [])
 
+  /** Session paths the user pinned; the commands walking the session list follow that order. */
+  const pinnedSessionPaths = useMemo(
+    () => new Set(pinnedSessions.map((session) => session.sessionPath)),
+    [pinnedSessions],
+  )
+
   // Commands and keyboard shortcuts
   /** Executes a productivity command in the context of the active session. */
   const executeCommand = useCallback((id: CommandId): void => {
@@ -1321,7 +1327,12 @@ function App() {
       return
     }
     if (id === 'next-session' || id === 'previous-session') {
-      const visible = sidebarSessions(recentSessions, workspacePath, sentSessions)
+      const visible = sidebarSessions(
+        recentSessions,
+        workspacePath,
+        sentSessions,
+        pinnedSessionPaths,
+      )
       const currentIndex = visible.findIndex((session) => session.id === selectedId)
       const targetIndex = id === 'next-session' ? currentIndex + 1 : currentIndex - 1
       if (targetIndex >= 0 && targetIndex < visible.length) setSelectedId(visible[targetIndex].id)
@@ -1341,6 +1352,7 @@ function App() {
     }
   }, [
     gitSnapshot?.repository,
+    pinnedSessionPaths,
     openRightWidget,
     recentSessions,
     recentWorkspacePaths,
@@ -1358,9 +1370,13 @@ function App() {
   ])
 
   const paletteCommands: PaletteCommand[] = useMemo(() => {
-    const visibleIds = sidebarSessions(recentSessions, workspacePath, sentSessions).map((session) =>
-      session.id
+    const visibleIds = sidebarSessions(
+      recentSessions,
+      workspacePath,
+      sentSessions,
+      pinnedSessionPaths,
     )
+      .map((session) => session.id)
     const selectedIndex = selectedId ? visibleIds.indexOf(selectedId) : -1
     return commandDefinitions.map((definition) => {
       const rightWidget = rightWidgetFromCommand(definition.id)
@@ -1390,6 +1406,7 @@ function App() {
   }, [
     executeCommand,
     gitSnapshot?.repository,
+    pinnedSessionPaths,
     recentSessions,
     recentWorkspacePaths,
     selectedId,

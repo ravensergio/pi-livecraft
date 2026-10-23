@@ -67,6 +67,7 @@ export function useWorkspaceSessions(
   const sessionsRef = useRef(sessions)
   const recentSessionsRef = useRef(recentSessions)
   const sentSessionsRef = useRef(sentSessions)
+  const pinnedSessionsRef = useRef(pinnedSessions)
   const completedSessionIdsRef = useRef(completedSessionIds)
   const selectedIdRef = useRef(selectedId)
   const creatingSessionRef = useRef(false)
@@ -75,6 +76,7 @@ export function useWorkspaceSessions(
   sessionsRef.current = sessions
   recentSessionsRef.current = recentSessions
   sentSessionsRef.current = sentSessions
+  pinnedSessionsRef.current = pinnedSessions
   completedSessionIdsRef.current = completedSessionIds
   selectedIdRef.current = selectedId
 
@@ -136,7 +138,12 @@ export function useWorkspaceSessions(
       if (version !== refreshVersionRef.current) return
       const autoSelectId = shouldAutoSelect
         ? pickSessionOnOpen(
-          sidebarSessions(nextRecentSessions, cwd, sentSessionsRef.current),
+          sidebarSessions(
+            nextRecentSessions,
+            cwd,
+            sentSessionsRef.current,
+            new Set(pinnedSessionsRef.current.map((session) => session.sessionPath)),
+          ),
           nextSessions,
           completedSessionIdsRef.current,
         )
@@ -352,6 +359,7 @@ export function useWorkspaceSessions(
         recentSessionsRef.current,
         workspacePath,
         sentSessionsRef.current,
+        new Set(pinnedSessionsRef.current.map((session) => session.sessionPath)),
       )
       : null
     await requestCloseSession(sessionId)

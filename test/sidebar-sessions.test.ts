@@ -55,6 +55,32 @@ test('orders sessions by their latest activity', () => {
   assert.deepEqual(sidebarSessions([older, newer], '/workspace'), [newer, older])
 })
 
+test('lists pinned sessions before newer unpinned ones', () => {
+  const pinnedOldest = { ...persisted, updatedAt: 50 }
+  const unpinnedNewest = {
+    ...persisted,
+    id: 'newest-id',
+    sessionPath: '/sessions/newest.jsonl',
+    updatedAt: 200,
+  }
+  const unpinnedMiddle = {
+    ...persisted,
+    id: 'middle-id',
+    sessionPath: '/sessions/middle.jsonl',
+    updatedAt: 100,
+  }
+
+  assert.deepEqual(
+    sidebarSessions(
+      [unpinnedNewest, unpinnedMiddle, pinnedOldest],
+      '/workspace',
+      [],
+      new Set([pinnedOldest.sessionPath]),
+    ),
+    [pinnedOldest, unpinnedNewest, unpinnedMiddle],
+  )
+})
+
 // -- otherWorkspaceSessions ------------------------------------------------
 
 const remoteSession: SessionSummary = {
