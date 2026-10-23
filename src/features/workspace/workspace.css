@@ -465,6 +465,40 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.other-workspace-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 8px;
+}
+.other-pins-toggle {
+  flex: 0 0 auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 2px 7px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+.other-pins-toggle:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line-strong));
+  color: var(--ink);
+}
+.other-pins-toggle:focus-visible {
+  outline: 0;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.other-pins-toggle:active:not(:disabled) {
+  transform: scale(0.97);
+}
 .other-session-list {
   display: flex;
   flex-direction: column;

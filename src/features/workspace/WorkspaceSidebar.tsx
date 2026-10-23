@@ -29,6 +29,18 @@ import {
 } from './SessionPickerDialog.tsx'
 import { maxWorkspaceSidebarWidth, minWorkspaceSidebarWidth } from './workspace-sidebar.ts'
 
+const OTHER_PINS_VISIBLE_KEY = 'pi-livecraft.other-workspace-pins-visible'
+const NO_PINNED_PATHS: ReadonlySet<string> = new Set()
+
+/** Pinned sessions from other workspaces are listed until the user hides them. */
+function readOtherPinsVisible(): boolean {
+  try {
+    return window.localStorage.getItem(OTHER_PINS_VISIBLE_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
 interface ContextMenuState {
   target: SessionActionTarget
   x: number
@@ -102,6 +114,15 @@ export function WorkspaceSidebar({
   const [deleteTarget, setDeleteTarget] = useState<SessionActionTarget | null>(null)
   const [moveTarget, setMoveTarget] = useState<SessionActionTarget | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [otherPinsVisible, setOtherPinsVisible] = useState(readOtherPinsVisible)
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(OTHER_PINS_VISIBLE_KEY, otherPinsVisible ? '1' : '0')
+    } catch {
+      // Storage unavailable (private mode) — the choice stays in memory for the session.
+    }
+  }, [otherPinsVisible])
+
   const selectedSessionRef = useRef<HTMLButtonElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
   const contextMenuTriggerRef = useRef<HTMLButtonElement>(null)
@@ -120,13 +141,35 @@ export function WorkspaceSidebar({
         workspacePath,
         compactingSessionIds,
         completedSessionIds,
-        pinnedSessionPaths,
+        otherPinsVisible ? pinnedSessionPaths : NO_PINNED_PATHS,
       ),
-    [compactingSessionIds, completedSessionIds, pinnedSessionPaths, sessions, workspacePath],
+    [
+      compactingSessionIds,
+      completedSessionIds,
+      otherPinsVisible,
+      pinnedSessionPaths,
+      sessions,
+      workspacePath,
+    ],
   )
   const otherPinnedSessions = useMemo(
     () => otherWorkspacePinnedSessions(pinnedSessions, sessions, workspacePath),
     [pinnedSessions, sessions, workspacePath],
+  )
+
+  /** Pins belonging to other workspaces, live and closed: what the hide toggle would remove. */
+  const otherPinnedCount = useMemo(
+    () =>
+      otherPinnedSessions.length
+      + sessions
+        .filter((session) =>
+          session.cwd !== workspacePath
+          && session.status !== 'exited'
+          && session.sessionPath !== undefined
+          && pinnedSessionPaths.has(session.sessionPath)
+        )
+        .length,
+    [otherPinnedSessions, pinnedSessionPaths, sessions, workspacePath],
   )
 
   // Full session list for the mobile "All" button: the strip only shows a
@@ -488,9 +531,27 @@ export function WorkspaceSidebar({
           <p className='empty-sidebar'>No Pi sessions in this directory.</p>
         )}
       </nav>
-      {(otherSessions.length > 0 || otherPinnedSessions.length > 0) && (
+      {(otherSessions.length > 0 || otherPinnedCount > 0) && (
         <section className='other-workspace-sessions'>
-          <h2>Other workspaces</h2>
+          <div className='other-workspace-header'>
+            <h2>Other workspaces</h2>
+            {otherPinnedCount > 0 && (
+              <Tooltip
+                label={otherPinsVisible
+                  ? 'Hide pinned sessions from other workspaces'
+                  : 'Show pinned sessions from other workspaces'}
+              >
+                <button
+                  aria-expanded={otherPinsVisible}
+                  className='other-pins-toggle'
+                  onClick={() => setOtherPinsVisible((current) => !current)}
+                  type='button'
+                >
+                  {otherPinsVisible ? 'Hide pinned' : `Show pinned (${otherPinnedCount})`}
+                </button>
+              </Tooltip>
+            )}
+          </div>
           <nav
             aria-label='Pinned, active and completed sessions in other workspaces'
             className='other-session-list'
@@ -539,7 +600,7 @@ export function WorkspaceSidebar({
                 </Tooltip>
               )
             })}
-            {otherPinnedSessions.map((session) => {
+            {otherPinsVisible && otherPinnedSessions.map((session) => {
               const actionTarget: SessionActionTarget = {
                 cwd: session.cwd,
                 name: session.name,
