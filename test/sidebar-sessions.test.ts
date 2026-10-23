@@ -28,7 +28,7 @@ test('keeps a sent session visible when persistence temporarily omits it', () =>
   assert.deepEqual(sidebarSessions([], '/workspace', [persisted]), [persisted])
 })
 
-test('uses persisted order once the sent session is returned', () => {
+test('lists the returned sent session once, on top as open work', () => {
   const other = {
     ...persisted,
     id: 'other-id',
@@ -38,8 +38,8 @@ test('uses persisted order once the sent session is returned', () => {
   const refreshed = { ...persisted, name: 'Generated title', updatedAt: 789 }
 
   assert.deepEqual(sidebarSessions([other, refreshed], '/workspace', [persisted]), [
-    other,
     refreshed,
+    other,
   ])
 })
 
@@ -78,6 +78,62 @@ test('lists pinned sessions before newer unpinned ones', () => {
       new Set([pinnedOldest.sessionPath]),
     ),
     [pinnedOldest, unpinnedNewest, unpinnedMiddle],
+  )
+})
+
+test('lists open sessions first, then pinned ones, then the rest by activity', () => {
+  const open = (sessionPath: string): SessionSummary => ({
+    id: sessionPath,
+    cwd: '/workspace',
+    name: 'Live session',
+    sessionPath,
+    status: 'running',
+    pendingUi: [],
+  })
+  const openPinned = {
+    ...persisted,
+    id: 'open-pinned',
+    sessionPath: '/sessions/open-pinned.jsonl',
+    updatedAt: 1,
+  }
+  const openPlain = {
+    ...persisted,
+    id: 'open-plain',
+    sessionPath: '/sessions/open-plain.jsonl',
+    updatedAt: 2,
+  }
+  const pinnedClosed = {
+    ...persisted,
+    id: 'pinned',
+    sessionPath: '/sessions/pinned.jsonl',
+    updatedAt: 3,
+  }
+  const exitedPlain = {
+    ...persisted,
+    id: 'exited',
+    sessionPath: '/sessions/exited.jsonl',
+    updatedAt: 6,
+  }
+  const plainRecent = {
+    ...persisted,
+    id: 'plain',
+    sessionPath: '/sessions/plain.jsonl',
+    updatedAt: 5,
+  }
+
+  assert.deepEqual(
+    sidebarSessions(
+      [plainRecent, exitedPlain, pinnedClosed, openPlain, openPinned],
+      '/workspace',
+      [],
+      new Set([openPinned.sessionPath, pinnedClosed.sessionPath]),
+      [
+        open(openPinned.sessionPath),
+        open(openPlain.sessionPath),
+        { ...open(exitedPlain.sessionPath), status: 'exited' },
+      ],
+    ),
+    [openPinned, openPlain, pinnedClosed, exitedPlain, plainRecent],
   )
 })
 

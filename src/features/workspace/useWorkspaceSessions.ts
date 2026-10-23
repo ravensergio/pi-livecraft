@@ -143,6 +143,7 @@ export function useWorkspaceSessions(
             cwd,
             sentSessionsRef.current,
             new Set(pinnedSessionsRef.current.map((session) => session.sessionPath)),
+            nextSessions,
           ),
           nextSessions,
           completedSessionIdsRef.current,

@@ -1332,6 +1332,7 @@ function App() {
         workspacePath,
         sentSessions,
         pinnedSessionPaths,
+        sessions,
       )
       const currentIndex = visible.findIndex((session) => session.id === selectedId)
       const targetIndex = id === 'next-session' ? currentIndex + 1 : currentIndex - 1
@@ -1359,6 +1360,7 @@ function App() {
     selectWorkspace,
     selectedId,
     sentSessions,
+    sessions,
     analysisAvailable,
     setDirectoryPickerOpen,
     setSelectedId,
@@ -1375,6 +1377,7 @@ function App() {
       workspacePath,
       sentSessions,
       pinnedSessionPaths,
+      sessions,
     )
       .map((session) => session.id)
     const selectedIndex = selectedId ? visibleIds.indexOf(selectedId) : -1
@@ -1412,6 +1415,7 @@ function App() {
     selectedId,
     selectedSession,
     sentSessions,
+    sessions,
     analysisAvailable,
     shortcuts,
     workspacePath,

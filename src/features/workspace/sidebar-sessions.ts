@@ -11,23 +11,33 @@ export interface SessionActionTarget {
 
 export type PinnedSession = Pick<RecentSession, 'cwd' | 'name' | 'sessionPath'>
 
-/** Adds pending sessions and orders the visible list: pinned sessions first, then latest activity. */
+/** Adds pending sessions and orders the visible list: open work first, then pinned, then latest activity. */
 export function sidebarSessions(
   recentSessions: RecentSession[],
   workspacePath: string,
   sentSessions: RecentSession[] = [],
   pinnedSessionPaths: ReadonlySet<string> = new Set(),
+  sessions: SessionSummary[] = [],
 ): RecentSession[] {
   const recentIds = new Set(recentSessions.map((session) => session.id))
   const recentPaths = new Set(recentSessions.map((session) => session.sessionPath))
   const pending = sentSessions.filter((session) =>
     !recentIds.has(session.id) && !recentPaths.has(session.sessionPath)
   )
+
+  // A session counts as open when it has a live Pi process or a message was just sent to it.
+  const openPaths = new Set([
+    ...sessions.flatMap((session) =>
+      session.status !== 'exited' && session.sessionPath ? [session.sessionPath] : []
+    ),
+    ...sentSessions.map((session) => session.sessionPath),
+  ])
   return [...pending, ...recentSessions]
     .filter(({ cwd }) => cwd === workspacePath)
     .sort((left, right) => {
       const rank = (session: RecentSession): number =>
-        pinnedSessionPaths.has(session.sessionPath) ? 0 : 1
+        (openPaths.has(session.sessionPath) ? 0 : 2)
+        + (pinnedSessionPaths.has(session.sessionPath) ? 0 : 1)
       return rank(left) - rank(right) || right.updatedAt - left.updatedAt
     })
 }
@@ -41,7 +51,13 @@ export function nextActiveSessionId(
   sentSessions: RecentSession[] = [],
   pinnedSessionPaths: ReadonlySet<string> = new Set(),
 ): string | null {
-  const visible = sidebarSessions(recentSessions, workspacePath, sentSessions, pinnedSessionPaths)
+  const visible = sidebarSessions(
+    recentSessions,
+    workspacePath,
+    sentSessions,
+    pinnedSessionPaths,
+    sessions,
+  )
   const activeIds = visible.flatMap(
     (recent) => {
       const active = sessions.find((session) =>

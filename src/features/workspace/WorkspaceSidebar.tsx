@@ -131,8 +131,9 @@ export function WorkspaceSidebar({
     [pinnedSessions],
   )
   const visibleSessions = useMemo(
-    () => sidebarSessions(recentSessions, workspacePath, sentSessions, pinnedSessionPaths),
-    [pinnedSessionPaths, recentSessions, sentSessions, workspacePath],
+    () =>
+      sidebarSessions(recentSessions, workspacePath, sentSessions, pinnedSessionPaths, sessions),
+    [pinnedSessionPaths, recentSessions, sessions, sentSessions, workspacePath],
   )
   const otherSessions = useMemo(
     () =>
