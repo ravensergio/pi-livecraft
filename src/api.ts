@@ -248,6 +248,21 @@ export async function deleteStoredSession(cwd: string, sessionPath: string): Pro
   })
 }
 
+export async function moveSession(
+  cwd: string,
+  sessionPath: string,
+  targetCwd: string,
+): Promise<{ sessionPath: string }> {
+  const response = await fetch('/api/sessions/move', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ cwd, sessionPath, targetCwd }),
+  })
+  const payload = await response.json().catch(() => ({})) as { error?: string }
+  if (!response.ok) throw new Error(payload.error ?? 'Unable to move the session')
+  return payload as { sessionPath: string }
+}
+
 export async function getSnapshot(sessionId: string): Promise<SessionSnapshot> {
   return request<SessionSnapshot>(`/api/sessions/${encodeURIComponent(sessionId)}/snapshot`)
 }

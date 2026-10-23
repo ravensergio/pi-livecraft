@@ -427,6 +427,7 @@ function App() {
     directoryPickerOpen,
     isRefreshingSessions,
     markSessionCompleted,
+    moveManagedSession,
     nameSessionFromFirstPrompt,
     pinnedSessions,
     recentSessions,
@@ -1172,6 +1173,16 @@ function App() {
     }
   }, [deleteManagedSession, messageOf, showToast])
 
+  async function handleMoveSession(target: SessionActionTarget, targetCwd: string): Promise<void> {
+    try {
+      await moveManagedSession(target, targetCwd)
+      showToast('notice', `Moved “${messageOf(target.name)}” to ${targetCwd}`)
+    } catch (cause) {
+      showToast('error', messageOf(cause))
+      throw cause
+    }
+  }
+
   /** Marks a live temporary session as normal so its file survives close. */
   const upgradeWorkspaceSession = useCallback(
     async (target: SessionActionTarget): Promise<void> => {
@@ -1499,6 +1510,7 @@ function App() {
         onError={(cause) => showToast('error', messageOf(cause))}
         onOpenSettings={() => setSettingsOpen(true)}
         onDeleteSession={handleDeleteSession}
+        onMoveSession={handleMoveSession}
         onRenameSession={renameManagedSession}
         onTogglePinnedSession={togglePinnedSession}
         onResize={updateWorkspaceSidebarWidth}

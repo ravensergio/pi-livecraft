@@ -447,6 +447,28 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     return
   }
 
+  if (method === 'POST' && url.pathname === '/api/sessions/move') {
+    const body = await readJsonBody(request)
+    if (
+      typeof body.cwd !== 'string' || typeof body.sessionPath !== 'string'
+      || typeof body.targetCwd !== 'string' || !body.targetCwd.trim()
+    ) {
+      throw new HttpError(400, 'Working directory, session path and target workspace are required')
+    }
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    const session = await loadPiSession(body.sessionPath)
+    if (session.cwd !== cwd)
+      throw new HttpError(400, 'Pi session does not belong to this working directory')
+    const moved = await manager.request({
+      action: 'move',
+      cwd,
+      sessionPath: session.sessionPath,
+      targetCwd: body.targetCwd.trim(),
+    })
+    sendJson(response, 200, { ok: true, ...(isObject(moved) ? moved : {}) })
+    return
+  }
+
   if (method === 'POST' && url.pathname === '/api/sessions') {
     const body = await readJsonBody(request)
     const cwd = await resolveWorkingDirectory(typeof body.cwd === 'string' ? body.cwd : '~/.pi')

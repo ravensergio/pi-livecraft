@@ -826,6 +826,53 @@
   font-size: 11px;
   line-height: 1.4;
 }
+.session-move-list {
+  display: grid;
+  gap: 4px;
+  max-height: 240px;
+  overflow: auto;
+  margin: 10px 0 0;
+}
+.session-move-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+.session-move-option:hover,
+.session-move-option:focus-within {
+  border-color: var(--line-strong);
+  background: var(--accent-soft);
+}
+.session-move-option input {
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+.session-move-option span {
+  flex: 1;
+  min-width: 0;
+}
+.session-move-option strong,
+.session-move-option small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-move-option strong {
+  font: 12px/1.35 ui-monospace, monospace;
+  font-weight: 400;
+  color: var(--ink);
+}
+.session-move-option small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .session-delete-name {
   color: var(--accent-hover);
 }

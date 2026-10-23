@@ -20,6 +20,7 @@ import {
   type SessionActionTarget,
 } from './sidebar-sessions.ts'
 import { SessionDeleteDialog } from './SessionDeleteDialog.tsx'
+import { SessionMoveDialog } from './SessionMoveDialog.tsx'
 import { SessionRenameDialog } from './SessionRenameDialog.tsx'
 import {
   SessionPickerDialog,
@@ -55,6 +56,7 @@ interface WorkspaceSidebarProps {
   onSelectSession: (sessionId: string) => void
   onOpenSettings: () => void
   onDeleteSession: (target: SessionActionTarget) => Promise<void>
+  onMoveSession: (target: SessionActionTarget, targetCwd: string) => Promise<void>
   onRenameSession: (target: SessionActionTarget, name: string) => Promise<void>
   onUpgradeSession: (target: SessionActionTarget) => Promise<void>
   onTogglePinnedSession: (target: SessionActionTarget) => void
@@ -85,6 +87,7 @@ export function WorkspaceSidebar({
   onSelectSession,
   onOpenSettings,
   onDeleteSession,
+  onMoveSession,
   onRenameSession,
   onUpgradeSession,
   onTogglePinnedSession,
@@ -97,6 +100,7 @@ export function WorkspaceSidebar({
   const [contextMenuPosition, setContextMenuPosition] = useState({ left: 0, top: 0 })
   const [renameTarget, setRenameTarget] = useState<SessionActionTarget | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<SessionActionTarget | null>(null)
+  const [moveTarget, setMoveTarget] = useState<SessionActionTarget | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const selectedSessionRef = useRef<HTMLButtonElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
@@ -627,6 +631,19 @@ export function WorkspaceSidebar({
               Delete…
             </button>
           )}
+          {/* Move is only offered for closed (history-only) sessions. */}
+          {contextMenuSessionPath && !contextMenu.target.sessionId && (
+            <button
+              onClick={() => {
+                dismissContextMenu()
+                setMoveTarget(contextMenu.target)
+              }}
+              role='menuitem'
+              type='button'
+            >
+              Move to workspace…
+            </button>
+          )}
         </div>
       )}
       {renameTarget && (
@@ -645,6 +662,15 @@ export function WorkspaceSidebar({
           onClose={() => setDeleteTarget(null)}
           onConfirm={() => onDeleteSession(deleteTarget)}
           sessionPath={deleteTarget.sessionPath}
+        />
+      )}
+      {moveTarget && (
+        <SessionMoveDialog
+          cwd={moveTarget.cwd}
+          key={moveTarget.sessionPath ?? moveTarget.name}
+          name={moveTarget.name}
+          onClose={() => setMoveTarget(null)}
+          onConfirm={(targetCwd) => onMoveSession(moveTarget, targetCwd)}
         />
       )}
       {pickerOpen && (

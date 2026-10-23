@@ -5,6 +5,7 @@ import {
   listDirectories,
   listRecentSessions,
   listSessions,
+  moveSession,
   renameSession as renameStoredSession,
   sendPiCommand,
 } from '../../api.ts'
@@ -374,6 +375,19 @@ export function useWorkspaceSessions(
     await refreshSessions()
   }, [refreshSessions])
 
+  // Move rewrites the session file into the target workspace's directory, so
+  // the pin follows the new path instead of pointing at a deleted file.
+  const moveManagedSession = useCallback(async (target: SessionActionTarget, targetCwd: string) => {
+    if (!target.sessionPath) throw new Error('This session has no stored file to move.')
+    const { sessionPath } = await moveSession(target.cwd, target.sessionPath, targetCwd)
+    setPinnedSessions((current) =>
+      current.map((entry) =>
+        entry.sessionPath === target.sessionPath ? { ...entry, cwd: targetCwd, sessionPath } : entry
+      )
+    )
+    await refreshSessions()
+  }, [refreshSessions])
+
   /** Adds or replaces a pending UI request for a session. */
   const addPendingRequest = useCallback((sessionId: string, request: JsonObject): void => {
     setSessions((current) =>
@@ -434,6 +448,7 @@ export function useWorkspaceSessions(
     directoryPickerOpen,
     isRefreshingSessions,
     markSessionCompleted,
+    moveManagedSession,
     nameSessionFromFirstPrompt,
     pinnedSessions,
     recentSessions,

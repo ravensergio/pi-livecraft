@@ -131,6 +131,7 @@ export interface ManagerRequest {
     | 'open'
     | 'close'
     | 'delete'
+    | 'move'
     | 'upgrade'
     | 'rename'
     | 'command'
@@ -142,6 +143,7 @@ export interface ManagerRequest {
   cwd?: string
   name?: string
   sessionPath?: string
+  targetCwd?: string
   command?: JsonObject
   prompt?: string
   systemPrompt?: string

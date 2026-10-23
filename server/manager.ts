@@ -6,16 +6,23 @@
  * ManagerClient; never spawn Pi directly or bypass the supervised lifecycle.
  */
 import { randomUUID } from 'node:crypto'
-import { appendFile, realpath, stat, unlink } from 'node:fs/promises'
+import { appendFile, mkdir, readFile, realpath, stat, unlink, writeFile } from 'node:fs/promises'
 import { createServer, type Socket } from 'node:net'
 import { JsonLineDecoder, encodeJsonLine } from './jsonl.ts'
+import { basename, join, resolve } from 'node:path'
 import { PiProcess, terminateAllPiProcesses } from './pi-process.ts'
 import {
   generateProjectMap,
   improvementDirectionInstruction,
   loadPromptImprovementSystemPrompt,
 } from './prompt-improvement.ts'
-import { lastEntryId, loadPiSession } from './pi-session-store.ts'
+import {
+  lastEntryId,
+  listSessionWorkspaces,
+  loadPiSession,
+  piSessionDirectory,
+  sessionDirectoryFor,
+} from './pi-session-store.ts'
 import { runIsolatedPrompt } from './run-isolated-prompt.ts'
 import { isObject } from '../shared/is-object.ts'
 import type {
@@ -175,6 +182,7 @@ async function handleRequest(socket: Socket, value: unknown): Promise<void> {
     else if (value.action === 'close') data = await closeSession(value)
     else if (value.action === 'rename') data = await renameSession(value)
     else if (value.action === 'delete') data = await deleteStoredSession(value)
+    else if (value.action === 'move') data = await moveStoredSession(value)
     else if (value.action === 'upgrade') data = await upgradeSession(value)
     else if (value.action === 'improve_prompt') data = await improvePrompt(value)
     else if (value.action === 'run_prompt') data = await runPrompt(value)
@@ -361,6 +369,51 @@ async function deleteStoredSession(request: ManagerRequest): Promise<{ deleted: 
 
   await unlink(session.sessionPath)
   return { deleted: true }
+}
+
+/**
+ * Moves a stored session file into another workspace's session directory. The
+ * header cwd is rewritten so the session lists under the target workspace.
+ * Order is copy → verify → delete original: a crash leaves the session in one
+ * place or both, never in none.
+ */
+async function moveStoredSession(value: ManagerRequest): Promise<{ sessionPath: string }> {
+  if (!value.sessionPath) throw new Error('sessionPath is required')
+  if (!value.targetCwd) throw new Error('targetCwd is required')
+  const source = resolve(value.sessionPath)
+  if (!source.startsWith(piSessionDirectory)) {
+    throw new Error('Session path is outside the Pi session directory')
+  }
+  const targetDirectory = join(piSessionDirectory, sessionDirectoryFor(value.targetCwd))
+  const sessionPath = join(targetDirectory, basename(source))
+  if (sessionPath === source) throw new Error('The session is already in that workspace')
+  // listSessionWorkspaces() only lists directories that exist, so the target
+  // is a real workspace; refuse anything else rather than create a stray dir.
+  const listed = await listSessionWorkspaces()
+  let resolvedTarget: string
+  try {
+    resolvedTarget = await realpath(value.targetCwd)
+  } catch {
+    throw new Error('That workspace is not available')
+  }
+  if (!listed.some((workspace) => workspace.path === resolvedTarget)) {
+    throw new Error('That workspace is not available')
+  }
+  await mkdir(targetDirectory, { recursive: true })
+  const content = await readFile(source, 'utf-8')
+  const lines = content.split('\n')
+  if (!lines[0]?.trim()) throw new Error('Session file has no header entry')
+  const header = JSON.parse(lines[0]) as Record<string, unknown>
+  header.cwd = resolvedTarget
+  lines[0] = JSON.stringify(header)
+  await writeFile(sessionPath, lines.join('\n'), 'utf-8')
+  const moved = await loadPiSession(sessionPath)
+  if (!moved) {
+    await unlink(sessionPath).catch(() => undefined)
+    throw new Error('The moved session could not be read back')
+  }
+  await unlink(source)
+  return { sessionPath }
 }
 
 /** Renames a persisted session by appending a session_info entry — no Pi process needed.
@@ -718,7 +771,8 @@ function respond(socket: Socket, response: ManagerResponse): void {
 function isManagerRequest(value: unknown): value is ManagerRequest {
   if (!isObject(value) || typeof value.id !== 'string') return false
   return value.action === 'list' || value.action === 'create' || value.action === 'open'
-    || value.action === 'close' || value.action === 'delete' || value.action === 'rename'
+    || value.action === 'close' || value.action === 'delete' || value.action === 'move'
+    || value.action === 'rename'
     || value.action === 'upgrade'
     || value.action === 'command'
     || value.action === 'improve_prompt' || value.action === 'run_prompt'
