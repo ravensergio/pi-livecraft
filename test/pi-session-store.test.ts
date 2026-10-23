@@ -165,6 +165,49 @@ test('reads the newest entry of a large session file even when it exceeds one ta
   assert.equal(recent[0].updatedAt, Date.parse('2026-07-19T11:00:00.000Z'))
 })
 
+test('recovers a rename entry sitting in the middle of a large session file', async () => {
+  const { directory, workspace } = await fixture()
+  const padding = (content: string) =>
+    JSON.stringify({
+      type: 'message',
+      timestamp: '2026-07-19T10:00:00.000Z',
+      message: { role: 'assistant', content },
+    })
+  await writeFile(
+    join(directory, 'middle-rename.jsonl'),
+    [
+      JSON.stringify({
+        type: 'session',
+        version: 3,
+        id: 'middle',
+        timestamp: '2026-07-19T09:00:00.000Z',
+        cwd: workspace,
+      }),
+      JSON.stringify({
+        type: 'message',
+        timestamp: '2026-07-19T09:00:00.000Z',
+        message: { role: 'user', content: 'first prompt' },
+      }),
+      padding('a'.repeat(200 * 1024)),
+      JSON.stringify({
+        type: 'session_info',
+        id: 'info-1',
+        timestamp: '2026-07-19T10:30:00.000Z',
+        name: 'Middle rename',
+      }),
+      padding('b'.repeat(200 * 1024)),
+      // A message that merely mentions the marker must not shadow the real entry.
+      padding('text with "type":"session_info" inside'),
+      padding('c'.repeat(10 * 1024)),
+    ]
+      .join('\n') + '\n',
+  )
+  const recent = await listRecentPiSessions(workspace, directory)
+  assert.equal(recent.length, 1)
+  assert.equal(recent[0].name, 'Middle rename')
+  assert.equal(recent[0].updatedAt, Date.parse('2026-07-19T10:30:00.000Z'))
+})
+
 async function writeSession(
   path: string,
   cwd: string,

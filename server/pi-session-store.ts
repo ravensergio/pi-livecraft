@@ -18,6 +18,13 @@ export function resolvePiSessionDirectory(
       : join(homeDirectory, '.pi', 'agent', 'sessions'))
 }
 
+/** Pi's session subdirectory name for a working directory (same rule as Pi's own naming). */
+export function sessionDirectoryFor(cwd: string): string {
+  return `--${cwd.replace(/^[/\\]/, '').replace(/[/\\:]/g, '-')}`
+}
+
+export const piSessionDirectory = sessionDirectory
+
 interface PiSessionHeader {
   type: 'session'
   id: string
@@ -191,7 +198,7 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
   if (!hasMessage) return null
   // Renames append a session_info entry, which can sit in the skipped middle of a large file.
   if (name === undefined && partialRead) {
-    const rescued = await findLatestSessionInfo(canonicalPath)
+    const rescued = await findLatestSessionInfo(canonicalPath, updatedAt)
     if (rescued) {
       name = rescued.name
       if (
@@ -245,42 +252,62 @@ async function readSessionLines(path: string): Promise<{ lines: string[]; partia
   }
 }
 
-/** Recovers a session name that the head/tail read missed: scans backward from the end of the
- *  file and returns the newest `session_info` entry. The first complete marker line found while
- *  scanning backward is by definition the latest rename. */
+/** Recovers a session name that the head/tail read missed: renames can sit anywhere in a
+ *  large file, so this scans the whole file forward in byte chunks and keeps the last
+ *  `session_info` entry. Results are cached per file version (size + mtime), so repeated
+ *  refreshes of an unchanged file cost nothing. */
+const rescuedNames = new Map<string, {
+  size: number
+  mtimeMs: number
+  result: { name: string; timestamp?: number } | null
+}>()
+
 async function findLatestSessionInfo(
   path: string,
+  mtimeMs: number,
 ): Promise<{ name: string; timestamp?: number } | null> {
   const size = (await stat(path)).size
+  const cached = rescuedNames.get(path)
+  if (cached && cached.size === size && cached.mtimeMs === mtimeMs) return cached.result
   let handle: FileHandle | undefined
+  let latest: { name: string; timestamp?: number } | null = null
   try {
     handle = await open(path, 'r')
-    let position = size
-    let scanned = 0
-    let tail = ''
-    while (position > 0 && scanned < NAME_SCAN_BUDGET) {
-      const chunkSize = Math.min(NAME_CHUNK_BYTES, position)
-      position -= chunkSize
+    let position = 0
+    let carry = Buffer.alloc(0)
+    while (position < size) {
+      const chunkSize = Math.min(NAME_CHUNK_BYTES, size - position)
       const chunk = Buffer.alloc(chunkSize)
       const { bytesRead } = await handle.read(chunk, 0, chunkSize, position)
-      tail = chunk.subarray(0, bytesRead).toString('utf8') + tail
-      scanned += bytesRead
-      const markerIndex = tail.lastIndexOf('"type":"session_info"')
-      if (markerIndex === -1) continue
-      const lineStart = tail.lastIndexOf('\n', markerIndex) + 1
-      if (lineStart === 0 && position > 0) continue // Line starts before the window; keep growing.
-      const lineEnd = tail.indexOf('\n', markerIndex)
-      const line = lineEnd === -1 ? tail.slice(lineStart) : tail.slice(lineStart, lineEnd)
-      const value = parseLine(line)
-      if (value?.type !== 'session_info') break
-      if (typeof value.name !== 'string' || !value.name.trim()) break
-      const parsed = Date.parse(typeof value.timestamp === 'string' ? value.timestamp : '')
-      return { name: value.name.trim(), timestamp: Number.isNaN(parsed) ? undefined : parsed }
+      position += bytesRead
+      const buffer = Buffer.concat([carry, chunk.subarray(0, bytesRead)])
+      const lastNewline = buffer.lastIndexOf(0x0a)
+      const complete = lastNewline === -1 ? Buffer.alloc(0) : buffer.subarray(0, lastNewline)
+      carry = lastNewline === -1 ? buffer : buffer.subarray(lastNewline + 1)
+      for (const line of complete.toString('utf8').split('\n')) {
+        if (!line.includes('"type":"session_info"')) continue
+        const value = parseLine(line)
+        if (
+          value?.type !== 'session_info' || typeof value.name !== 'string'
+          || !value.name.trim()
+        ) continue
+        const parsed = Date.parse(typeof value.timestamp === 'string' ? value.timestamp : '')
+        latest = { name: value.name.trim(), timestamp: Number.isNaN(parsed) ? undefined : parsed }
+      }
+    }
+    if (carry.length > 0 && carry.toString('utf8').includes('"type":"session_info"')) {
+      const value = parseLine(carry.toString('utf8'))
+      if (value?.type === 'session_info' && typeof value.name === 'string' && value.name.trim()) {
+        const parsed = Date.parse(typeof value.timestamp === 'string' ? value.timestamp : '')
+        latest = { name: value.name.trim(), timestamp: Number.isNaN(parsed) ? undefined : parsed }
+      }
     }
   } finally {
     await handle?.close().catch(() => undefined)
   }
-  return null
+  if (rescuedNames.size > 200) rescuedNames.clear()
+  rescuedNames.set(path, { size, mtimeMs, result: latest })
+  return latest
 }
 
 /** Returns the id of the last complete non-header entry (Pi's leaf), or null for a header-only file.
