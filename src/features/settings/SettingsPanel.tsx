@@ -74,6 +74,9 @@ interface SettingsPanelProps {
   onTypographyChange: (next: TypographySettings) => void
   onResetTypography: () => void
   onReset: () => void
+  managerRestartable: boolean
+  managerRestarting: boolean
+  onRestartManager: () => Promise<void>
   onClose: () => void
 }
 
@@ -465,11 +468,25 @@ export function SettingsPanel({
   onResetTypography,
   onReset,
   onClose,
+  managerRestartable,
+  managerRestarting,
+  onRestartManager,
 }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>('themes')
   const [capturing, setCapturing] = useState<CommandId | null>(null)
   const [themeName, setThemeName] = useState('')
+  const [restartPending, setRestartPending] = useState(false)
   const conflicts = shortcutConflicts(shortcuts)
+
+  /** Requests a manager restart; failures are reported as toasts by the caller. */
+  async function requestManagerRestart(): Promise<void> {
+    setRestartPending(true)
+    try {
+      await onRestartManager()
+    } finally {
+      setRestartPending(false)
+    }
+  }
   const activeTheme = themes.find((theme) => theme.id === activeThemeId) ?? themes[0]
   const editableTheme = Boolean(activeTheme)
 
@@ -590,6 +607,13 @@ export function SettingsPanel({
           )}
         </section>
         <footer>
+          <button
+            disabled={managerRestarting || restartPending || !managerRestartable}
+            onClick={() => void requestManagerRestart()}
+            type='button'
+          >
+            {managerRestarting || restartPending ? 'Restarting…' : 'Restart manager'}
+          </button>
           <button onClick={onReset} type='button'>Reset shortcuts</button>
           <button className='primary' onClick={onClose} type='button'>Done</button>
         </footer>

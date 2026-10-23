@@ -67,7 +67,12 @@ export class ManagerRuntimeMonitor {
   async restart(): Promise<void> {
     if (!this.#manager.connected) throw new Error('Pi manager is unavailable')
     if (this.#restartRequested) throw new Error('Pi manager restart is already in progress')
-    if (this.#status.state !== 'stale' || !this.#status.canRestart)
+    // Manual restarts are allowed on a healthy manager too; the manager itself
+    // refuses while Pi work is active. Supervised is required so the supervisor
+    // can bring the new instance back.
+    if (this.#status.state !== 'stale' && this.#status.state !== 'current')
+      throw new Error('Pi manager cannot be restarted in its current state')
+    if (!this.#identity?.supervised)
       throw new Error('Pi manager cannot be restarted in its current state')
     this.#restartRequested = true
     try {

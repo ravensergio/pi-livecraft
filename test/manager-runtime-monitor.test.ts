@@ -102,3 +102,44 @@ async function waitForState(
   }
   assert.fail(`Manager runtime did not reach ${state}; current state: ${monitor.status.state}`)
 }
+
+test('restarts a supervised manager that is up to date', async () => {
+  const { revision } = await calculateManagerRuntimeRevision()
+  const manager = new FakeManager({
+    instanceId: 'manager-1',
+    startedAt: new Date().toISOString(),
+    runtimeRevision: revision,
+    supervised: true,
+  })
+  const monitor = new ManagerRuntimeMonitor(manager as unknown as ManagerClient, () => undefined)
+  try {
+    monitor.start()
+    monitor.connected()
+    await waitForState(monitor, 'current')
+    await monitor.restart()
+    assert.equal(monitor.status.state, 'restarting')
+    assert.ok(manager.actions.includes('restart'))
+  } finally {
+    monitor.stop()
+  }
+})
+
+test('refuses a restart for an unsupervised manager', async () => {
+  const { revision } = await calculateManagerRuntimeRevision()
+  const manager = new FakeManager({
+    instanceId: 'manager-1',
+    startedAt: new Date().toISOString(),
+    runtimeRevision: revision,
+    supervised: false,
+  })
+  const monitor = new ManagerRuntimeMonitor(manager as unknown as ManagerClient, () => undefined)
+  try {
+    monitor.start()
+    monitor.connected()
+    await waitForState(monitor, 'current')
+    await assert.rejects(monitor.restart(), /cannot be restarted/)
+    assert.equal(manager.actions.includes('restart'), false)
+  } finally {
+    monitor.stop()
+  }
+})

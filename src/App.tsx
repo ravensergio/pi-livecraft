@@ -355,6 +355,16 @@ function App() {
   /** Removes a toast after explicit dismissal or automatic timeout. */
   const dismissToast = useCallback((id: string) => startDismissal(id), [startDismissal])
 
+  /** Requests a supervised manager restart; the backend refuses while Pi work is active. */
+  const handleRestartManager = useCallback(async (): Promise<void> => {
+    try {
+      await restartManager()
+      showToast('notice', 'Manager restarting.')
+    } catch (cause) {
+      showToast('error', messageOf(cause))
+    }
+  }, [showToast])
+
   /** Restores visible dialogs and resolves stale agent selectors that block manager restart. */
   const handleSessionsRefreshed = useCallback((nextSessions: SessionSummary[]): void => {
     // Seed extension status chips from server-side memory — late-attaching clients
@@ -1819,6 +1829,10 @@ function App() {
           typography={typography}
           onTypographyChange={handleTypographyChange}
           onResetTypography={handleResetTypography}
+          managerRestartable={managerRuntimeStatus.state === 'current'
+            || managerRuntimeStatus.state === 'stale'}
+          managerRestarting={managerRuntimeStatus.state === 'restarting'}
+          onRestartManager={handleRestartManager}
           onReset={() => {
             setShortcuts(defaultShortcuts)
             window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(defaultShortcuts))
