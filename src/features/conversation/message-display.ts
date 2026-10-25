@@ -31,6 +31,13 @@ export function hasVisibleContent(content: unknown): boolean {
   )
 }
 
+/** Formats a message timestamp as dd-mm-yyyy HH:mm in the viewer's local time. */
+export function formatMessageStamp(date: Date): string {
+  const pad = (value: number): string => String(value).padStart(2, '0')
+  return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`
+    + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 function isImageContent(value: unknown): boolean {
   return isObject(value) && value.type === 'image' && typeof value.data === 'string'
     && typeof value.mimeType === 'string'

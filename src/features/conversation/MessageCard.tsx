@@ -5,7 +5,11 @@ import { CopyButton } from './CopyButton.tsx'
 import { ForkButton } from './ForkButton.tsx'
 import { TreeButton } from './TreeButton.tsx'
 import { Markdown } from './Markdown.tsx'
-import { hasVisibleContent, reasoningTextForDisplay } from './message-display.ts'
+import {
+  formatMessageStamp,
+  hasVisibleContent,
+  reasoningTextForDisplay,
+} from './message-display.ts'
 import { formatSpeed, formatTokens, formatTurnCost, type MessageUsage } from './message-usage.ts'
 
 /** How thinking blocks present themselves for the session. */
@@ -110,7 +114,7 @@ const DefaultMessageCard = memo(
             className='message-time'
             dateTime={time.toISOString()}
           >
-            {time.toLocaleTimeString(navigator.language, { hour: '2-digit', minute: '2-digit' })}
+            {formatMessageStamp(time)}
           </time>
         )}
       </article>
