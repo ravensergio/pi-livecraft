@@ -146,7 +146,8 @@
   document.head.appendChild(feedStyle);
   const feedPanel = document.createElement('div');
   feedPanel.className = 'sc-feed';
-  feedPanel.style.cssText = 'display:none;margin-top:8px;padding-top:8px;border-top:1px solid ' + C.border + ';max-height:300px;overflow-y:auto;scrollbar-width:none;font:12px/1.5 Consolas,monospace';
+  // user-select:text re-enables selection inside the card, which is user-select:none
+  feedPanel.style.cssText = 'display:none;margin-top:8px;padding-top:8px;border-top:1px solid ' + C.border + ';max-height:300px;overflow-y:auto;scrollbar-width:none;font:12px/1.5 Consolas,monospace;user-select:text';
   const feedBox = document.createElement('div');
   feedPanel.appendChild(feedBox);
   body.appendChild(feedPanel);
