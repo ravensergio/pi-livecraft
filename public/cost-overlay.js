@@ -306,19 +306,11 @@
   }
 
   // ---------- polling ----------
-  // Data path per origin:
-  //  - a.rraven.org (remote Studio): same-origin /cost.json, NPM location ->
-  //    widget 192.168.0.9:8787. Page CSP is connect-src 'self', so the page's
-  //    own window.fetch is allowed - no GM_xmlhttpRequest (broken on AdGuard
-  //    Mobile, AdguardForAndroid #5736), no CORS needed (same-origin).
-  //  - 127.0.0.1:5173 (local Studio): cross-origin straight to the widget;
-  //    needs cors_origin "*" in config.json. No preflight (plain GET).
-  // LAN origins talk straight to the widget (needs cors_origin "*"); the
-  // Studio domain uses same-origin /cost.json proxied by NPM.
-  const WIDGET_HOST = { '127.0.0.1': 'localhost', '192.168.0.9': '192.168.0.9' }[location.hostname]
-  const DATA_URL = WIDGET_HOST
-    ? `http://${WIDGET_HOST}:8787/cost.json`
-    : location.origin + '/cost.json';
+  // Data comes from Livecraft's own server, which reads the Studio cost widget on
+  // its machine (server/backend.ts, /api/cost). One path works on localhost, LAN
+  // IPs, VPN addresses and any future https domain: no widget host guessing,
+  // no CORS, no mixed-content problem.
+  const DATA_URL = '/api/cost'
   function poll() {
     window.fetch(DATA_URL, { cache: 'no-store' })
       .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })

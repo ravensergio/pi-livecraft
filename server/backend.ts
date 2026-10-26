@@ -64,6 +64,22 @@ process.on('unhandledRejection', (reason) => {
 const host = '127.0.0.1'
 const port = readPort('PI_LIVECRAFT_BACKEND_PORT', 43_121)
 const managerPort = readPort('PI_LIVECRAFT_MANAGER_PORT', 43_120)
+// The Studio cost widget runs on the home PC: that machine's own localhost first,
+// then the home LAN address, so a copy running elsewhere reaches it over the VPN.
+const COST_WIDGET_URLS = ['http://127.0.0.1:8787/cost.json', 'http://192.168.0.9:8787/cost.json']
+
+async function fetchCostSnapshot(): Promise<unknown> {
+  for (const url of COST_WIDGET_URLS) {
+    try {
+      const widget = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(2000) })
+      if (!widget.ok) throw new Error(`cost widget responded ${widget.status}`)
+      return await widget.json()
+    } catch {
+      // No widget at this address; try the next one.
+    }
+  }
+  throw new HttpError(502, 'Cost widget is unreachable')
+}
 const manager = new ManagerClient(host, managerPort)
 const eventClients = new Set<ServerResponse>()
 const liveSessionEvents = new Map<string, LiveSessionEvents>()
@@ -234,6 +250,13 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       sendJson(response, 200, await saveSearchConfig(await readJsonBody(request)))
       return
     }
+  }
+
+  // Studio cost snapshot, proxied so every device reaches the widget through
+  // Livecraft's own server instead of guessing its host from the address bar.
+  if (method === 'GET' && url.pathname === '/api/cost') {
+    sendJson(response, 200, await fetchCostSnapshot())
+    return
   }
 
   if (method === 'POST' && url.pathname === '/api/explorer') {
