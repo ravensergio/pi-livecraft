@@ -1,11 +1,13 @@
-# Chat Image-Path Plan (idea locked, not started)
+# Chat File-Path Plan (paths and downloads built; inline images open)
 
 Goal: when a model writes a local file path in chat — e.g.
 `E:\z_Working_PI\zz_PiSessions\2026-10-16-kokon-test\cow-tensy.png` —
 Livecraft detects it and shows the image. General case: any path the model
 pastes, not MCP image results.
 
-Status: brainstorm done, no code, no decision. Revisit later.
+Status: Phase A and the `/api/files/raw` download route are built — an absolute
+Windows path in chat prose renders as a link the browser saves, so a device on
+the LAN or VPN can pull a file that lives on this PC. Inline images remain open.
 
 ## What already exists (the foundation)
 
@@ -13,32 +15,32 @@ Status: brainstorm done, no code, no decision. Revisit later.
 - `POST /api/files/open` opens a workspace path with the OS default handler
   (`openPath`). "Click a path → Windows opens it" already works today.
 
-## Phase A — clickable paths (cheap, do first if ever built)
+## Phase A — clickable paths (BUILT)
 
-1. Detect path-like tokens in rendered chat text (`Markdown.tsx`):
-   Windows (`E:\...`), WSL (`/e/...`), `file://` — any file extension.
-   Scan text nodes only; never code blocks or inline code (samples stay text).
-2. Detected path renders with a small "open" action → existing
-   `/api/files/open`. No new backend route. Works for every file type.
+`markdown-file-paths.ts` detects drive-letter and UNC paths in Markdown text runs
+only (code blocks and inline code stay literal), and relative paths and URLs are
+left alone on purpose: too many false positives. The link points at
+`GET /api/files/raw?path=…`.
 
-## Phase B — inline images (only if A proves the want)
+## Phase B — inline images (still open)
 
-1. New route `/api/files/raw`: reuses the `readWorkspaceFile` guard, streams
-   bytes with the right `Content-Type`.
+1. `/api/files/raw` exists and streams any absolute path as an attachment.
+   Inline images need it to answer `?inline=1` (or a second route) without the
+   `Content-Disposition` header.
 2. Image-extension paths render as `<img>`; click opens full size.
-3. Non-image paths keep Phase A behavior.
+3. Non-image paths keep the download behavior.
 
-## The open decision (answer before building)
+## The path rule (decided)
 
-- Absolute paths (`E:\...`) are outside the session cwd. The guard must accept
-  either a small root allowlist (the working folders) or cwd only.
-  This is a privacy/security decision, not a code problem.
+Absolute paths outside the session workspace are accepted, matching
+`/api/files/open`. Accepted exposure: anyone who can reach the port can read any
+file on this PC. Tolerable while the server stays on loopback plus the VPN; it
+must wait for the login in `REMOTE-ACCESS-PLAN.md` before any public exposure.
 
-## Hazards to handle
+
+## Hazards left for inline images
 
 - File deleted after the reply → graceful broken-image fallback.
-- False positives: paths in code samples, docs, tables.
-- Paths split across lines must not half-match.
 
 ## Explicitly out of scope
 

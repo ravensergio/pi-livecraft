@@ -17,7 +17,7 @@ Presentation follows the same ownership boundaries:
 - `Conversation.tsx` assembles the thread and owns scrolling and navigation;
 - `MessageCard.tsx` renders protocol messages and turn usage;
 - `ActivityIndicator.tsx` renders the current Pi activity;
-- `Markdown.tsx` owns Markdown and front matter rendering;
+- `Markdown.tsx` owns Markdown and front matter rendering; `markdown-file-paths.ts` turns absolute file paths in prose into download links (`GET /api/files/raw`), never inside code;
 - `ToolCallCard.tsx` owns tool state, actions, and expansion;
 - `ToolCallOutput.tsx` renders file previews and expanded output;
 - `ToolCallEditDiff.tsx` renders edit diffs.

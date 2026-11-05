@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs'
 import { appendFile, readdir, readFile, rename, realpath, stat, writeFile } from 'node:fs/promises'
-import { dirname, extname, join, resolve, sep } from 'node:path'
+import { basename, dirname, extname, join, resolve, sep } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
@@ -318,6 +318,30 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       if (error instanceof WorkspaceFileError) throw new HttpError(error.status, error.message)
       throw error
     }
+    return
+  }
+
+  // Streams a file to the browser as a download, so a device on the LAN or VPN can
+  // save a file that lives on this PC. Absolute paths outside the workspace are
+  // accepted on purpose, like /api/files/open: model output points at files
+  // anywhere here, and the server stays reachable from loopback and the VPN only.
+  if (method === 'GET' && url.pathname === '/api/files/raw') {
+    const requested = url.searchParams.get('path')
+    if (!requested) throw new HttpError(400, 'File path is required')
+    const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
+    let path: string
+    try {
+      path = await resolveWorkspaceFilePath(cwd, requested, true)
+    } catch (error) {
+      if (error instanceof WorkspaceFileError) throw new HttpError(error.status, error.message)
+      throw error
+    }
+    response.writeHead(200, {
+      'Content-Type': contentType(path),
+      'Content-Length': String((await stat(path)).size),
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(basename(path))}`,
+    })
+    createReadStream(path).on('error', () => response.destroy()).pipe(response)
     return
   }
 

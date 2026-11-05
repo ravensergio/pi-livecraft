@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 import { CopyablePre } from './CodeBlock.tsx'
 import { parseMarkdownFrontmatter } from './markdown-frontmatter.ts'
+import { fileDownloadUrl, remarkDownloadableFilePaths } from './markdown-file-paths.ts'
 
 /** Converts single newlines in text into hard breaks (chat-style line layout).
  *  react-markdown has no `breaks` option, so this remark plugin provides it. */
@@ -151,7 +152,12 @@ export const Markdown = memo(function Markdown(
       )}
       <ReactMarkdown
         components={{
-          a: (props) => <a {...props} rel='noreferrer' target='_blank' />,
+          a: ({ href, ...props }) =>
+            href?.startsWith(fileDownloadUrl)
+              // Same tab: the server answers with Content-Disposition attachment,
+              // so the browser saves the file and the conversation stays open.
+              ? <a {...props} href={href} title='Download file' />
+              : <a {...props} href={href} rel='noreferrer' target='_blank' />,
           code: ({ children: code, className }) => (
             <MarkdownCode className={className}>{code}</MarkdownCode>
           ),
@@ -160,7 +166,9 @@ export const Markdown = memo(function Markdown(
               ? <CopyablePre onError={onError}>{code}</CopyablePre>
               : <pre>{code}</pre>,
         }}
-        remarkPlugins={breaks ? [remarkGfm, remarkSingleLineBreaks] : [remarkGfm]}
+        remarkPlugins={breaks
+          ? [remarkGfm, remarkSingleLineBreaks, remarkDownloadableFilePaths]
+          : [remarkGfm, remarkDownloadableFilePaths]}
       >
         {body}
       </ReactMarkdown>
