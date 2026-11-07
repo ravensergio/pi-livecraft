@@ -1,5 +1,6 @@
 import * as Select from '@radix-ui/react-select'
 import { memo, type RefObject } from 'react'
+import { Tooltip } from '../../../components/Tooltip.tsx'
 
 /** Generic Radix-based select dropdown shared by all composer toolbar controls. */
 export const ComposerSelect = memo(function ComposerSelect(
@@ -33,6 +34,9 @@ export const ComposerSelect = memo(function ComposerSelect(
     triggerRef?: RefObject<HTMLButtonElement | null>
   },
 ) {
+  // The trigger truncates its label; the tooltip shows the full selection.
+  const fullLabel = options.find((option) => option.value === value)?.label ?? value
+
   return (
     <Select.Root
       disabled={disabled}
@@ -41,12 +45,18 @@ export const ComposerSelect = memo(function ComposerSelect(
       onValueChange={onValueChange}
       value={value}
     >
-      <Select.Trigger aria-label={ariaLabel} className={`composer-select ${tone}`} ref={triggerRef}>
-        {loading
-          ? <span aria-hidden='true' className='composer-select-spinner' />
-          : <ComposerSelectIcon tone={tone} />}
-        <Select.Value placeholder={placeholder} />
-      </Select.Trigger>
+      <Tooltip label={fullLabel}>
+        <Select.Trigger
+          aria-label={ariaLabel}
+          className={`composer-select ${tone}`}
+          ref={triggerRef}
+        >
+          {loading
+            ? <span aria-hidden='true' className='composer-select-spinner' />
+            : <ComposerSelectIcon tone={tone} />}
+          <Select.Value placeholder={placeholder} />
+        </Select.Trigger>
+      </Tooltip>
       <Select.Portal>
         <Select.Content
           className={`composer-select-content ${tone}`}

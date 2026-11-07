@@ -318,6 +318,9 @@
   .composer-select {
     max-width: 160px;
   }
+  .composer-select.model {
+    max-width: 200px;
+  }
   .prompt-comparison {
     grid-template-columns: 1fr;
   }
