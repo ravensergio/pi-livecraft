@@ -25,6 +25,7 @@ export const PromptSelect = memo(function PromptSelect(
   return (
     <ComposerSelect
       ariaLabel='Insert prompt template'
+      purpose='Insert a configured prompt'
       disabled={prompts.length === 0 && !canSave}
       onOpenChange={(open) => {
         if (!open) onPreviewEnd()

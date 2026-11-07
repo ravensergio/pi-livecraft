@@ -14,6 +14,7 @@ export const ComposerSelect = memo(function ComposerSelect(
     onOptionsPointerLeave,
     options,
     placeholder,
+    purpose,
     tone,
     triggerRef,
     loading,
@@ -24,6 +25,8 @@ export const ComposerSelect = memo(function ComposerSelect(
     onValueChange: (value: string) => void
     options: { description?: string; kind?: 'action'; label: string; value: string }[]
     placeholder?: string
+    /** What the control is for; shown under the selection in the tooltip. */
+    purpose?: string
     tone: 'agent' | 'behavior' | 'command' | 'improve' | 'model' | 'prompt' | 'thinking'
     value: string
     loading?: boolean
@@ -45,7 +48,7 @@ export const ComposerSelect = memo(function ComposerSelect(
       onValueChange={onValueChange}
       value={value}
     >
-      <Tooltip label={fullLabel}>
+      <Tooltip hint={purpose} label={fullLabel}>
         <Select.Trigger
           aria-label={ariaLabel}
           className={`composer-select ${tone}`}

@@ -466,9 +466,17 @@
     color 180ms ease-out,
     box-shadow 180ms ease-out;
 }
+/* The folded Prompts + Improve group keeps the toolbar gap rhythm. */
+.composer-prompt-tools {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
 /* Model names run long; give that pill room and let the tooltip show the rest. */
 .composer-select.model {
-  max-width: 220px;
+  max-width: 260px;
 }
 
 .composer-select:hover {

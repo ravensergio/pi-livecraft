@@ -140,6 +140,8 @@ export const Composer = memo(function Composer({
     { original: string; improved: string; cost?: number }
   >()
   const [openSelect, setOpenSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
+  /** The rarely used Prompts and Improve pills fold into one icon until opened. */
+  const [promptToolsOpen, setPromptToolsOpen] = useState(false)
   /** Terminal-style history browsing: index into messageHistory, or null when not browsing. */
   const [historyIndex, setHistoryIndex] = useState<number | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
@@ -196,6 +198,24 @@ export const Composer = memo(function Composer({
     [],
   )
   const handlePromptOpenChange = useCallback(() => setOpenSelect(null), [])
+
+  // Collapse the expanded Prompts/Improve pills when the pointer goes down
+  // outside them; Radix dropdowns are portalled outside the toolbar, so
+  // clicks inside any dropdown must not fold the group away.
+  const promptToolsRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!promptToolsOpen) return
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target
+      if (
+        target instanceof Element && (promptToolsRef.current?.contains(target)
+          || target.closest('.composer-select-content'))
+      ) return
+      setPromptToolsOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [promptToolsOpen])
 
   useEffect(() => {
     if (submitRequest > 0) formRef.current?.requestSubmit()
@@ -727,31 +747,56 @@ export const Composer = memo(function Composer({
               onOpenChange={handleThinkingOpenChange}
               triggerRef={thinkingTriggerRef}
             />
-            <Tooltip label='Insert a configured prompt'>
-              <PromptSelect
-                canSave={Boolean(message.trim()) && !previewingPrompt}
-                onOpenChange={handlePromptOpenChange}
-                onPreview={previewPrompt}
-                onPreviewEnd={endPromptPreview}
-                onSave={openPromptSaveDialog}
-                onSelect={selectPrompt}
-                prompts={promptTemplates}
-              />
-            </Tooltip>
-
             {running && <BehaviorSelect behavior={behavior} onChange={setBehavior} />}
-            <Tooltip label='Improve prompt'>
-              <ComposerSelect
-                ariaLabel='Improve prompt'
-                disabled={improving || submitting || !message.trim()}
-                onValueChange={handleImproveValueChange}
-                options={improveOptions}
-                loading={improving}
-                placeholder='Improve'
-                tone='improve'
-                value={improvePreset}
-              />
-            </Tooltip>
+            <div className='composer-prompt-tools' ref={promptToolsRef}>
+              {promptToolsOpen
+                ? (
+                  <>
+                    <PromptSelect
+                      canSave={Boolean(message.trim()) && !previewingPrompt}
+                      onOpenChange={handlePromptOpenChange}
+                      onPreview={previewPrompt}
+                      onPreviewEnd={endPromptPreview}
+                      onSave={openPromptSaveDialog}
+                      onSelect={selectPrompt}
+                      prompts={promptTemplates}
+                    />
+                    <ComposerSelect
+                      ariaLabel='Improve prompt'
+                      disabled={improving || submitting || !message.trim()}
+                      onValueChange={handleImproveValueChange}
+                      options={improveOptions}
+                      loading={improving}
+                      placeholder='Improve'
+                      purpose='Improve prompt'
+                      tone='improve'
+                      value={improvePreset}
+                    />
+                  </>
+                )
+                : (
+                  <Tooltip label='Prompt templates and Improve'>
+                    <button
+                      aria-expanded={false}
+                      aria-label='Prompt templates and Improve prompt'
+                      className='composer-select improve'
+                      onClick={() => setPromptToolsOpen(true)}
+                      type='button'
+                    >
+                      <svg aria-hidden='true' className='composer-select-icon' viewBox='0 0 16 16'>
+                        <path
+                          d='M3 2.5h10v11H3zM5.2 5.5h5.6M5.2 8h5.6M5.2 10.5h3.2'
+                          fill='none'
+                          stroke='currentColor'
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth='1.4'
+                        />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                )}
+            </div>
             {onReasoningModeChange && (
               <button
                 aria-label={`Thinking blocks: ${reasoningMode}. Click to change.`}
