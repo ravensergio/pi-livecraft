@@ -28,7 +28,6 @@ import {
   readComposerDraft,
 } from './composer-utils.ts'
 import { AgentSelect } from './selects/AgentSelect.tsx'
-import { BehaviorSelect } from './selects/BehaviorSelect.tsx'
 import { ModelSelect } from './selects/ModelSelect.tsx'
 import { PromptSelect } from './selects/PromptSelect.tsx'
 import { ThinkingSelect } from './selects/ThinkingSelect.tsx'
@@ -155,7 +154,8 @@ export const Composer = memo(function Composer({
   const [slashOpen, setSlashOpen] = useState(false)
   const [slashFilter, setSlashFilter] = useState('')
   const [slashIndex, setSlashIndex] = useState(-1)
-  const [behavior, setBehavior] = useState<'steer' | 'followUp'>('steer')
+  // The steer/follow-up pill is hidden; sends always steer. See selects/BehaviorSelect.tsx to restore.
+  const behavior: 'steer' | 'followUp' = 'steer'
   const model = isObject(snapshot.state?.model) ? snapshot.state.model : null
   const currentModel = model && typeof model.id === 'string' && typeof model.provider === 'string'
     ? `${model.provider}/${model.id}`
@@ -747,7 +747,6 @@ export const Composer = memo(function Composer({
               onOpenChange={handleThinkingOpenChange}
               triggerRef={thinkingTriggerRef}
             />
-            {running && <BehaviorSelect behavior={behavior} onChange={setBehavior} />}
             <div className='composer-prompt-tools' ref={promptToolsRef}>
               {promptToolsOpen
                 ? (
