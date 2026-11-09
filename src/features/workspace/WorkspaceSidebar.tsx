@@ -19,6 +19,7 @@ import {
   type PinnedSession,
   type SessionActionTarget,
 } from './sidebar-sessions.ts'
+import { copyText } from '../../lib/clipboard.ts'
 import { SessionDeleteDialog } from './SessionDeleteDialog.tsx'
 import { SessionMoveDialog } from './SessionMoveDialog.tsx'
 import { SessionRenameDialog } from './SessionRenameDialog.tsx'
@@ -323,6 +324,17 @@ export function WorkspaceSidebar({
     if (!target?.sessionPath) return
     dismissContextMenu()
     onTogglePinnedSession(target)
+  }
+
+  async function copySessionName(): Promise<void> {
+    const name = contextMenu?.target.name
+    dismissContextMenu()
+    if (!name) return
+    try {
+      await copyText(name)
+    } catch (cause) {
+      onError(cause)
+    }
   }
 
   async function closeTarget(): Promise<void> {
@@ -655,6 +667,9 @@ export function WorkspaceSidebar({
             type='button'
           >
             Rename…
+          </button>
+          <button onClick={() => void copySessionName()} role='menuitem' type='button'>
+            Copy session name
           </button>
           {/* Temporary live sessions can be upgraded so their file survives close. */}
           {contextMenu.target.sessionId && contextMenu.target.temporary && (
