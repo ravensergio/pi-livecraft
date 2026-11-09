@@ -162,7 +162,7 @@
     return p >= RED_PCT ? red : p >= 0.75 ? C.gold : C.green;
   }
 
-  function setUsage(rowEl, bar, name, used, total) {
+  function setUsage(rowEl, bar, name, used, total, mib) {
     rowEl.textContent = '';
     rowEl.appendChild(label(name));
     const fill = bar.firstChild;
@@ -178,8 +178,9 @@
     const v = document.createElement('span');
     v.style.cssText = 'display:flex;align-items:baseline;justify-content:flex-end;gap:16px;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap';
     const mid = document.createElement('span');
-    const a = document.createElement('span'); a.style.color = barColor(pct); a.textContent = used.toFixed(1);
-    const b = document.createElement('span'); b.style.color = C.green; b.textContent = ' / ' + total.toFixed(1) + ' Gb';
+    const dp = mib ? 0 : 1;
+    const a = document.createElement('span'); a.style.color = barColor(pct); a.textContent = used.toFixed(dp);
+    const b = document.createElement('span'); b.style.color = C.green; b.textContent = ' / ' + total.toFixed(dp) + (mib ? '' : ' Gb');
     mid.append(a, b);
     const c = document.createElement('span'); c.style.color = danger ? C.red : C.gold; c.textContent = Math.round(pct * 100) + '%';
     v.append(mid, c);
@@ -225,14 +226,15 @@
     stMonth.textContent = fmtRon(d.month_cost_ron) + ' RON';
     stTokens.textContent = (d.session_tokens || 0).toLocaleString();
     lastData = d;
-    const g = d.gpu_mem || [];
+    const mib = !!(d.gpu_mem_mib && d.gpu_mem_mib.length);
+    const g = (mib ? d.gpu_mem_mib : d.gpu_mem) || [];
     if (gpuMerged && g.length >= 2) {
-      setUsage(rGpu1, barGpu1, 'GPU', g[0][0] + g[1][0], g[0][1] + g[1][1]);
+      setUsage(rGpu1, barGpu1, 'GPU', g[0][0] + g[1][0], g[0][1] + g[1][1], mib);
       rGpu2.style.display = 'none';
       barGpu2.style.display = 'none';
     } else {
-      setUsage(rGpu1, barGpu1, 'GPU1', g[0] ? g[0][0] : null, g[0] ? g[0][1] : null);
-      setUsage(rGpu2, barGpu2, 'GPU2', g[1] ? g[1][0] : null, g[1] ? g[1][1] : null);
+      setUsage(rGpu1, barGpu1, 'GPU1', g[0] ? g[0][0] : null, g[0] ? g[0][1] : null, mib);
+      setUsage(rGpu2, barGpu2, 'GPU2', g[1] ? g[1][0] : null, g[1] ? g[1][1] : null, mib);
       rGpu2.style.display = 'flex';
       barGpu2.style.display = '';
     }
