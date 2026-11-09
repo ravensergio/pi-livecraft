@@ -76,6 +76,7 @@ interface WorkspaceSidebarProps {
   onResize: (width: number) => void
   onToggleCollapsed: () => void
   onError: (cause: unknown) => void
+  onNotice: (message: string) => void
 }
 
 /** Displays the current workspace and opens or selects its recent Pi sessions. */
@@ -107,6 +108,7 @@ export function WorkspaceSidebar({
   onResize,
   onToggleCollapsed,
   onError,
+  onNotice,
 }: WorkspaceSidebarProps) {
   const [openingSessionPath, setOpeningSessionPath] = useState('')
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -332,6 +334,7 @@ export function WorkspaceSidebar({
     if (!name) return
     try {
       await copyText(name)
+      onNotice(`Copied "${name}"`)
     } catch (cause) {
       onError(cause)
     }

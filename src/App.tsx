@@ -1539,6 +1539,7 @@ function App() {
         onSelectOtherWorkspaceSession={(session) => selectWorkspace(session.cwd, session.id)}
         onSelectSession={setSelectedId}
         onError={(cause) => showToast('error', messageOf(cause))}
+        onNotice={(message) => showToast('notice', message)}
         onOpenSettings={() => setSettingsOpen(true)}
         onDeleteSession={handleDeleteSession}
         onMoveSession={handleMoveSession}
