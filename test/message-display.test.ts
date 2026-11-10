@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   formatMessageStamp,
+  hiddenLineCount,
   reasoningTextForDisplay,
 } from '../src/features/conversation/message-display.ts'
 
@@ -34,4 +35,18 @@ test('preserves Markdown, bracketed text, and non-SGR controls', () => {
 test('formats a message stamp as dd-mm-yyyy HH:mm', () => {
   assert.equal(formatMessageStamp(new Date(2026, 9, 3, 9, 7)), '03-10-2026 09:07')
   assert.equal(formatMessageStamp(new Date(2026, 10, 25, 22, 5)), '25-11-2026 22:05')
+})
+
+test('counts the lines a folded message hides', () => {
+  // 20 lines of 20px shown through a 10-line window: 10 lines are hidden.
+  assert.equal(hiddenLineCount(400, 200, 20), 10)
+  assert.equal(hiddenLineCount(218, 200, 20), 1)
+})
+
+test('leaves a message that fits unfolded', () => {
+  assert.equal(hiddenLineCount(200, 200, 20), 0)
+  assert.equal(hiddenLineCount(140, 200, 20), 0)
+  // A trailing margin must not invent a "show more" control for nothing.
+  assert.equal(hiddenLineCount(208, 200, 20), 0)
+  assert.equal(hiddenLineCount(400, 200, 0), 0)
 })

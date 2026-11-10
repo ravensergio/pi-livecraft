@@ -1,4 +1,4 @@
-import { memo, useState, type ReactNode } from 'react'
+import { memo, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { isObject } from '../../../shared/is-object.ts'
 import { CopyButton } from './CopyButton.tsx'
@@ -8,6 +8,7 @@ import { Markdown } from './Markdown.tsx'
 import {
   formatMessageStamp,
   hasVisibleContent,
+  hiddenLineCount,
   reasoningTextForDisplay,
 } from './message-display.ts'
 import { formatSpeed, formatTokens, formatTurnCost, type MessageUsage } from './message-usage.ts'
@@ -202,7 +203,10 @@ function renderContent(
         {content}
       </Markdown>
     )
-    return role === 'assistant' ? <div className='reply-block'>{markdown}</div> : markdown
+    if (role === 'assistant') return <div className='reply-block'>{markdown}</div>
+    return role === 'user'
+      ? <CollapsedMessageText>{markdown}</CollapsedMessageText>
+      : markdown
   }
   if (!Array.isArray(content)) return null
   return (
@@ -236,22 +240,78 @@ function renderContent(
             </ReasoningBlock>
           )
         if (part.type === 'text' && typeof part.text === 'string') {
+          const key = `text-${contentIndex}`
           const markdown = (
             <Markdown
               breaks={role !== 'assistant'}
               copyablePre={role === 'assistant'}
-              key={`text-${contentIndex}`}
+              key={key}
               onError={onError}
             >
               {part.text}
             </Markdown>
           )
-          return role === 'assistant'
-            ? <div className='reply-block' key={`text-${contentIndex}`}>{markdown}</div>
+          if (role === 'assistant') {
+            return <div className='reply-block' key={key}>{markdown}</div>
+          }
+          return role === 'user'
+            ? <CollapsedMessageText key={key}>{markdown}</CollapsedMessageText>
             : markdown
         }
         return null
       })}
+    </>
+  )
+}
+
+/** A user message longer than this many lines starts folded to it. */
+const FOLD_LINES = 10
+
+/** Folds the user's own long pastes (a log, a dump) so a long reply does not push
+ *  the whole thread off screen. The fold is measured, so wrapped prose folds too,
+ *  a message that fits stays untouched, and the button counts real lines. */
+function CollapsedMessageText({ children }: { children: ReactNode }) {
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [fold, setFold] = useState({ clampPx: 0, hidden: 0 })
+  const [open, setOpen] = useState(false)
+
+  // Layout effect, not effect: the clamp lands before the first paint, so a long
+  // paste never flashes open. The observer keeps the count honest when the
+  // conversation is resized and text re-wraps.
+  useLayoutEffect(() => {
+    const body = bodyRef.current
+    if (!body || typeof ResizeObserver === 'undefined') return
+    const measure = (): void => {
+      const lineHeight = Number.parseFloat(getComputedStyle(body).lineHeight) || 20
+      const clampPx = FOLD_LINES * lineHeight
+      const hidden = hiddenLineCount(body.scrollHeight, clampPx, lineHeight)
+      setFold({ clampPx: hidden > 0 ? clampPx : 0, hidden })
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(body)
+    measure()
+    return () => observer.disconnect()
+  }, [])
+
+  const clamped = !open && fold.clampPx > 0
+  return (
+    <>
+      <div
+        className={`message-text${clamped ? ' folded' : ''}`}
+        ref={bodyRef}
+        style={clamped ? { maxHeight: `${fold.clampPx}px` } : undefined}
+      >
+        {children}
+      </div>
+      {fold.hidden > 0 && (
+        <button
+          className='message-fold'
+          onClick={() => setOpen(!open)}
+          type='button'
+        >
+          {open ? 'Fold' : `Show ${fold.hidden} more ${fold.hidden === 1 ? 'line' : 'lines'}`}
+        </button>
+      )}
     </>
   )
 }

@@ -6,6 +6,25 @@
   font-size: var(--fs-user);
   line-height: var(--lh-user);
 }
+/* A long paste (log, dump) folds to a few lines; the control under it unfolds it.
+   The height cap is set in JS because only the measured line height cuts exactly
+   on a line boundary. */
+.message-text.folded {
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent);
+}
+.message-fold {
+  margin-top: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 600 12px/1.5 ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+.message-fold:hover {
+  color: var(--ink);
+}
 /* Quoted text (e.g. from "Ask about this") — visible as a quote, not flat text. */
 .content blockquote {
   margin: 6px 0;
@@ -123,10 +142,12 @@
     system-ui,
     sans-serif;
 }
-.content > :first-child, .reasoning > :first-child {
+.content > :first-child,
+.reasoning > :first-child,
+.message-text > :first-child {
   margin-top: 0;
 }
-.content > :last-child, .reasoning > :last-child {
+.content > :last-child, .reasoning > :last-child, .message-text > :last-child {
   margin-bottom: 0;
 }
 .content p {

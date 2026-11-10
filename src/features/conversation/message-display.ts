@@ -38,6 +38,18 @@ export function formatMessageStamp(date: Date): string {
     + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+/** Whole lines a clipped message body hides, or 0 when nothing overflows. The
+ *  rounding is deliberate: a trailing margin or a sliver of a line must not
+ *  offer a "show more" control for content that is already visible. */
+export function hiddenLineCount(
+  fullHeight: number,
+  visibleHeight: number,
+  lineHeight: number,
+): number {
+  if (!(lineHeight > 0) || !(fullHeight > 0) || !(visibleHeight > 0)) return 0
+  return Math.max(0, Math.round((fullHeight - visibleHeight) / lineHeight))
+}
+
 function isImageContent(value: unknown): boolean {
   return isObject(value) && value.type === 'image' && typeof value.data === 'string'
     && typeof value.mimeType === 'string'
