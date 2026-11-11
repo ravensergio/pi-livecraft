@@ -5,6 +5,7 @@ import { CopyButton } from './CopyButton.tsx'
 import { ForkButton } from './ForkButton.tsx'
 import { TreeButton } from './TreeButton.tsx'
 import { Markdown } from './Markdown.tsx'
+import { unwrapQuoteMarkers } from './quote-envelope.ts'
 import {
   formatMessageStamp,
   hasVisibleContent,
@@ -72,7 +73,11 @@ const DefaultMessageCard = memo(
     const role = String(message.role)
     const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
     const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
-    const text = visibleText(message.content ?? message.output)
+    // Quote markers exist only for the model; your message reads as you typed it.
+    const content = role === 'user'
+      ? unwrapQuoteMarkers(message.content ?? message.output)
+      : message.content ?? message.output
+    const text = visibleText(content)
     const forkEntryId = role === 'user' && typeof message.forkEntryId === 'string'
       ? message.forkEntryId
       : undefined
@@ -101,7 +106,7 @@ const DefaultMessageCard = memo(
         )}
         <div className='content'>
           {renderContent(
-            message.content ?? message.output,
+            content,
             message.role,
             onError,
             live,

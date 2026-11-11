@@ -41,6 +41,7 @@ import { CommandOutputPanel } from './features/notifications/CommandOutputPanel.
 import { sessionActivity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
 import { visibleText, type ReasoningMode } from './features/conversation/MessageCard.tsx'
+import { stripQuoteMarkers } from './features/conversation/quote-envelope.ts'
 import { assistantMessageInEvent } from '../shared/assistant-message-stream.ts'
 import { speakReply } from './features/voice/voice.ts'
 import { useConversationRuntime } from './features/conversation/useConversationRuntime.ts'
@@ -1210,7 +1211,7 @@ function App() {
     const texts: string[] = []
     for (const entry of snapshot.messages) {
       if (String(entry.role) !== 'user') continue
-      const text = visibleText(entry.content ?? entry.output).trim()
+      const text = stripQuoteMarkers(visibleText(entry.content ?? entry.output)).trim()
       if (text) texts.push(text)
     }
     return texts

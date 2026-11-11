@@ -47,4 +47,15 @@ Action components are implementations, not the extension contract. `CopyButton.t
 - Successful `read`, `write`, and `edit` calls expose an action that resolves relative paths from the session working directory and opens the resulting file, including absolute targets outside it.
 - Pending calls have no output or file action. Directional markers distinguish copy actions without visible button text.
 
+## Quoted replies
+
+Selecting text in an assistant reply inserts it in the composer as Markdown blockquote
+lines, which is what the composer and the chat show. A blockquote alone is weak in raw
+text, so `quote-envelope.ts` wraps exactly those inserted fragments in a start and end
+marker on the way out (`markInsertedQuotes()` in `Composer.tsx` at send) and removes the
+markers again wherever your own message is shown (`unwrapQuoteMarkers()` in
+`MessageCard.tsx`, `stripQuoteMarkers()` for ArrowUp recall in `App.tsx`). The quote text
+itself is never modified, text you typed or pasted yourself is never touched, and a quote
+edited beyond recognition is sent unmarked rather than guessed at.
+
 Follow the [conversation action guide](/docs/HOW-TO-CONVERSATION-ACTION.md) to add another action. Keep actions icon-only, keyboard-accessible, colocated with their owning content, and explicit in the relevant renderer. Do not introduce a registry unless actions need genuinely dynamic selection.

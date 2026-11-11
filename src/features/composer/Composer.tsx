@@ -30,6 +30,7 @@ import {
 import { AgentSelect } from './selects/AgentSelect.tsx'
 import { ModelSelect } from './selects/ModelSelect.tsx'
 import { PromptSelect } from './selects/PromptSelect.tsx'
+import { markInsertedQuotes } from '../conversation/quote-envelope.ts'
 import { ThinkingSelect } from './selects/ThinkingSelect.tsx'
 import { ComposerSelect } from './selects/ComposerSelect.tsx'
 import { ComposerStatusBar } from './status-bar/ComposerStatusBar.tsx'
@@ -268,7 +269,12 @@ export const Composer = memo(function Composer({
     if (textarea) textarea.setSelectionRange(textarea.value.length, textarea.value.length)
   }, [historyIndex])
 
-  // Quote selection from replies — insert as blockquote at cursor.
+  // Quote selection from replies — insert as blockquote at cursor. The quote text is
+  // remembered so submit can wrap it in markers the model cannot misread; the chat
+  // strips those again, so you never see them (see conversation/quote-envelope.ts).
+  // A draft restored after a reload loses the record; that quote then goes out as
+  // plain blockquote text, as before.
+  const insertedQuotes = useRef<string[]>([])
   useEffect(() => {
     const handler = (event: Event) => {
       const custom = event as CustomEvent<{ text: string }>
@@ -276,6 +282,7 @@ export const Composer = memo(function Composer({
       if (!textarea) return
       const text = custom.detail.text
       const quote = text.split('\n').map((line) => `> ${line}`).join('\n')
+      insertedQuotes.current.push(quote)
       const start = textarea.selectionStart ?? textarea.value.length
       const end = textarea.selectionEnd ?? textarea.value.length
       const before = textarea.value.slice(0, start)
@@ -428,11 +435,13 @@ export const Composer = memo(function Composer({
         return
       }
       await onSend(
-        nextMessage,
+        markInsertedQuotes(nextMessage, insertedQuotes.current),
         images.map(({ data, mimeType }) => ({ type: 'image', data, mimeType })),
         behavior,
         commandPending,
       )
+      // Sent: forget the quotes so a later message is not marked by an earlier one.
+      insertedQuotes.current = []
     } catch (cause) {
       setDraftMessage(nextMessage)
       setImages(images)
