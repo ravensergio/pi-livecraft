@@ -8,7 +8,12 @@ import { resolvePiLauncher } from '../server/pi-launcher.ts'
 import type { JsonObject } from '../shared/types.ts'
 import { isObject } from '../shared/is-object.ts'
 
-test('exposes current Pi commands over RPC', { timeout: 60_000 }, async (t) => {
+// Real installed pi, real ~/.pi (so: your real extensions and default model).
+// Opt in with PI_LIVECRAFT_RUN_REAL_PI=1 — it must never run as part of `npm test`.
+test('exposes current Pi commands over RPC', {
+  skip: !process.env.PI_LIVECRAFT_RUN_REAL_PI,
+  timeout: 60_000,
+}, async (t) => {
   const launcher = resolvePiLauncher()
   const pi = spawn(launcher.command, [
     ...launcher.argsPrefix,
