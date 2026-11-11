@@ -318,6 +318,17 @@
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
+/* A path that sits in a code chip is a download too; keep the chip, add the hint. */
+.content a.file-download {
+  text-decoration: none;
+}
+.content a.file-download code {
+  color: var(--accent);
+}
+.content a.file-download:hover code {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .content table {
   width: 100%;
   margin: 0 0 13px;

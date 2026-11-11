@@ -59,3 +59,57 @@ test('links the real path when Markdown ate its backslash before a dot', () => {
     link('C:\\Users\\Raven\\.pi\\agent\\models.json'),
   ])
 })
+
+const spaced = 'E:\\z_Working_PI\\00-LLM Strata Ninfer\\2026-11-11-pi-work-sync\\pi-sync.ps1'
+
+test('a path in backticks keeps its spaces and downloads', () => {
+  const paragraph = { type: 'paragraph', children: [{ type: 'inlineCode', value: spaced }] }
+  const tree = { type: 'root', children: [paragraph] }
+
+  remarkDownloadableFilePaths()(tree, { value: '' })
+
+  assert.deepEqual(paragraph.children, [{
+    type: 'link',
+    url: `/api/files/raw?path=${encodeURIComponent(spaced)}`,
+    title: null,
+    children: [{ type: 'inlineCode', value: spaced }],
+  }])
+})
+
+test('a code block holding only one path downloads too', () => {
+  const tree: { type: string; children: Array<Record<string, unknown>> } = {
+    type: 'root',
+    children: [{ type: 'code', value: `${spaced}  ` }],
+  }
+
+  remarkDownloadableFilePaths()(tree, { value: '' })
+
+  assert.equal(tree.children[0]?.type, 'paragraph')
+  assert.deepEqual((tree.children[0] as { children?: unknown[] }).children, [{
+    type: 'link',
+    url: `/api/files/raw?path=${encodeURIComponent(spaced)}`,
+    title: null,
+    children: [{ type: 'inlineCode', value: spaced }],
+  }])
+})
+
+test('a code block with more than a path stays literal code', () => {
+  const tree = { type: 'root', children: [{ type: 'code', value: `powershell -File ${spaced}` }] }
+
+  remarkDownloadableFilePaths()(tree, { value: '' })
+
+  assert.equal(tree.children[0]?.type, 'code')
+})
+
+test('a quoted path keeps its quote marks and loses none of its spaces', () => {
+  assert.deepEqual(filePathLinks(`Path: "${spaced}" ready`), [
+    { type: 'text', value: 'Path: "' },
+    link(spaced),
+    { type: 'text', value: '" ready' },
+  ])
+})
+
+test('a prose path that a space cuts short stays plain text', () => {
+  // "…\00-LLM" would be a link to something that does not exist, so nothing is linked.
+  assert.equal(filePathLinks(`Here it is plain: ${spaced}`), null)
+})

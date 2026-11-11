@@ -156,7 +156,7 @@ export const Markdown = memo(function Markdown(
             href?.startsWith(fileDownloadUrl)
               // Same tab: the server answers with Content-Disposition attachment,
               // so the browser saves the file and the conversation stays open.
-              ? <a {...props} href={href} title='Download file' />
+              ? <a {...props} className='file-download' href={href} title='Download file' />
               : <a {...props} href={href} rel='noreferrer' target='_blank' />,
           code: ({ children: code, className }) => (
             <MarkdownCode className={className}>{code}</MarkdownCode>
