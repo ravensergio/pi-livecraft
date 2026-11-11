@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { delimiter, join } from 'node:path'
+import { join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { connect, type Socket } from 'node:net'
 import test from 'node:test'
@@ -80,7 +80,7 @@ test('reconciles live Pi work before restarting the manager', { timeout: 10_000 
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+      PATH: fakePiBin(directory),
       PI_LIVECRAFT_MANAGER_PORT: String(port),
       PI_LIVECRAFT_MANAGER_RESTART_EXIT_CODE: '75',
       PI_LIVECRAFT_MANAGER_RUNTIME_REVISION: 'test-revision',
@@ -188,7 +188,7 @@ test(
       cwd: process.cwd(),
       env: {
         ...process.env,
-        PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+        PATH: fakePiBin(directory),
         PI_LIVECRAFT_MANAGER_PORT: String(port),
       },
       stdio: 'ignore',
@@ -224,7 +224,7 @@ test('deduplicates concurrent opens for one session path', { timeout: 10_000 }, 
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+      PATH: fakePiBin(directory),
       PI_LIVECRAFT_MANAGER_PORT: String(port),
     },
     stdio: 'ignore',
@@ -267,7 +267,7 @@ test(
       cwd: process.cwd(),
       env: {
         ...process.env,
-        PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+        PATH: fakePiBin(directory),
         PI_LIVECRAFT_MANAGER_PORT: String(port),
       },
       stdio: 'ignore',
@@ -370,7 +370,7 @@ test(
       cwd: process.cwd(),
       env: {
         ...process.env,
-        PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+        PATH: fakePiBin(directory),
         PI_LIVECRAFT_MANAGER_PORT: String(port),
         PI_LIVECRAFT_IDLE_REUSE_AFTER_MS: '0',
       },
@@ -443,7 +443,7 @@ test('tracks the new Pi session file after forking', { timeout: 10_000 }, async 
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+      PATH: fakePiBin(directory),
       PI_LIVECRAFT_MANAGER_PORT: String(port),
     },
     stdio: 'ignore',
@@ -482,7 +482,7 @@ test('completes a manual compact without timeout', { timeout: 10_000 }, async ()
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+      PATH: fakePiBin(directory),
       PI_LIVECRAFT_MANAGER_PORT: String(port),
     },
     stdio: 'ignore',
@@ -517,7 +517,7 @@ test('closes a Pi session without deleting its manager summary', { timeout: 10_0
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+      PATH: fakePiBin(directory),
       PI_LIVECRAFT_MANAGER_PORT: String(port),
     },
     stdio: 'ignore',
@@ -574,7 +574,7 @@ test(
       cwd: process.cwd(),
       env: {
         ...process.env,
-        PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+        PATH: fakePiBin(directory),
         PI_LIVECRAFT_MANAGER_PORT: String(port),
       },
       stdio: 'ignore',
@@ -611,7 +611,7 @@ test('restarts an exited Pi session when reopening it', { timeout: 10_000 }, asy
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+      PATH: fakePiBin(directory),
       PI_LIVECRAFT_MANAGER_PORT: String(port),
     },
     stdio: 'ignore',
@@ -653,7 +653,7 @@ test('improves a prompt with the cheapest isolated model', { timeout: 10_000 }, 
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+      PATH: fakePiBin(directory),
       PI_LIVECRAFT_MANAGER_PORT: String(port),
     },
     stdio: 'ignore',
@@ -688,7 +688,7 @@ test('improves a prompt with a direction preset', { timeout: 10_000 }, async () 
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PATH: `${fakePiBin(directory)}${delimiter}${process.env.PATH}`,
+      PATH: fakePiBin(directory),
       PI_LIVECRAFT_MANAGER_PORT: String(port),
     },
     stdio: 'ignore',
