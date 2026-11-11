@@ -270,7 +270,7 @@ function renderContent(
 }
 
 /** A user message longer than this many lines starts folded to it. */
-const FOLD_LINES = 10
+const FOLD_LINES = 20
 
 /** Folds the user's own long pastes (a log, a dump) so a long reply does not push
  *  the whole thread off screen. The fold is measured, so wrapped prose folds too,
