@@ -1661,6 +1661,14 @@ function App() {
                     </div>
                   </div>
                   <div className='composer-area'>
+                    {searchOpen && (
+                      <SearchBar
+                        key={selectedSession.id}
+                        messages={searchEntries}
+                        onClose={() => setSearchOpen(false)}
+                        onJump={jumpToSearchMatch}
+                      />
+                    )}
                     {questionnaire && questionnaireInComposer && (
                       <AskUserQuestionDialog
                         canMinimize
@@ -1761,14 +1769,6 @@ function App() {
               <ToastStack onDismiss={dismissToast} standalone toasts={visibleToasts} />
             </>
           )}
-        {searchOpen && selectedSession && (
-          <SearchBar
-            key={selectedSession.id}
-            messages={searchEntries}
-            onClose={() => setSearchOpen(false)}
-            onJump={jumpToSearchMatch}
-          />
-        )}
       </main>
 
       <RightSidebar

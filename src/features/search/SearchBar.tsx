@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { findMatches, stepMatch, type SearchableMessage } from './search-messages.ts'
+import { findMatches, searchTerms, stepMatch, type SearchableMessage } from './search-messages.ts'
 
 /** Highlight names registered with CSS.highlights; styled in search.css via ::highlight(). */
 const HIGHLIGHT_ALL = 'livecraft-search'
@@ -117,7 +117,7 @@ export function SearchBar(
     if (!supportsHighlightApi || !query || matches.length === 0) return
     const conversation = document.querySelector<HTMLElement>('.conversation')
     if (!conversation) return
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+    const terms = searchTerms(query)
     const activeMatch = matches[active]
     // One scan per mounted message, not per match (the old per-match loop pushed every
     // occurrence of every match: quadratic, and the Highlight spread overflowed the stack).
@@ -132,7 +132,7 @@ export function SearchBar(
       )
       if (!element) continue
       const ranges: Range[] = []
-      messageRanges(element, words, ranges)
+      messageRanges(element, terms, ranges)
       if (activeMatch && activeMatch.index === match.index) {
         // Occurrences inside the message keep document order; the active match is the
         // one whose start offset ranks at the same position among them.

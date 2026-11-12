@@ -41,6 +41,26 @@ test('every query word must appear, in any order — swift next finds Swift 1.5 
     { index: 0, start: 16, end: 20 },
   ])
 })
+test('quoted "swift next" demands the exact wording', () => {
+  const corpus = [
+    { index: 0, text: 'swift flash next' },
+    { index: 1, text: 'try swift next when ready' },
+  ]
+  assert.deepEqual(findMatches(corpus, '"swift next"'), [
+    { index: 1, start: 4, end: 14 },
+  ])
+})
+
+test('ranking: the message where the words sit closest together comes first', () => {
+  const corpus = [
+    { index: 0, text: 'swift is great … and someday next' },
+    { index: 1, text: 'swift next gen model' },
+  ]
+  assert.deepEqual(
+    findMatches(corpus, 'swift next').map((m) => `${m.index}:${m.start}`),
+    ['1:0', '1:6', '0:0', '0:29'],
+  )
+})
 
 test('multiple query words interleave in text order and extra spaces are ignored', () => {
   assert.deepEqual(
