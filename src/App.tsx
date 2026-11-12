@@ -1297,7 +1297,7 @@ function App() {
       return
     }
     if (id === 'search') {
-      setSearchOpen(true)
+      setSearchOpen((open) => !open)
       return
     }
     if (id === 'open-settings') {
