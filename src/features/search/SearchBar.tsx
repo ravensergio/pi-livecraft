@@ -79,6 +79,7 @@ export function SearchBar(
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   const [rescanTick, setRescanTick] = useState(0)
   const rescan = useCallback(() => setRescanTick((tick) => tick + 1), [])
 
@@ -89,6 +90,31 @@ export function SearchBar(
 
   useEffect(() => {
     inputRef.current?.focus()
+  }, [])
+  // Sits directly above the composer without rendering inside its subtree
+  // (that coupling stacked duplicate bars). Pure measurement: pinned by
+  // getBoundingClientRect, re-placed when the composer grows or the page moves.
+  useEffect(() => {
+    const bar = rootRef.current
+    const composer = document.querySelector<HTMLElement>('.composer')
+    if (!bar || !composer) return
+    const place = () => {
+      const box = composer.getBoundingClientRect()
+      bar.style.left = `${box.left}px`
+      bar.style.width = `${box.width}px`
+      bar.style.transform = 'none'
+      bar.style.top = `${Math.max(box.top - bar.offsetHeight - 8, 8)}px`
+    }
+    place()
+    const observer = new ResizeObserver(place)
+    observer.observe(composer)
+    window.addEventListener('scroll', place, true)
+    window.addEventListener('resize', place)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', place, true)
+      window.removeEventListener('resize', place)
+    }
   }, [])
 
   const jump = useCallback((position: number) => {
@@ -176,7 +202,7 @@ export function SearchBar(
 
   const count = matches.length
   return (
-    <div className='search-bar' role='search'>
+    <div className='search-bar' ref={rootRef} role='search'>
       <input
         aria-label='Search this conversation'
         className='search-bar-input'
