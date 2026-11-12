@@ -35,7 +35,9 @@ function messageRanges(element: HTMLElement, words: string[], ranges: Range[]): 
     starts.push(total)
     total += textNode.textContent?.length ?? 0
   }
-  const text = nodes.map((textNode) => textNode.textContent ?? '').join('')
+  // Lowercased like the query terms — highlighting capitalised matches such as
+  // "Flash Next" would otherwise find nothing while the count says otherwise.
+  const text = nodes.map((textNode) => textNode.textContent ?? '').join('').toLowerCase()
   const locate = (position: number): { node: Text; at: number } => {
     let i = 0
     while (i + 1 < starts.length && starts[i + 1] <= position) i++
@@ -214,35 +216,37 @@ export function SearchBar(
         type='text'
         value={query}
       />
-      <span className='search-bar-count'>
-        {query === '' ? '' : count === 0 ? 'no matches' : `${active + 1} of ${count}`}
-      </span>
-      <button
-        aria-label='Previous match'
-        className='search-bar-button'
-        onClick={() => jump(stepMatch(active, -1, matches.length))}
-        disabled={count === 0}
-        type='button'
-      >
-        ↑
-      </button>
-      <button
-        aria-label='Next match'
-        className='search-bar-button'
-        onClick={() => jump(stepMatch(active, 1, matches.length))}
-        disabled={count === 0}
-        type='button'
-      >
-        ↓
-      </button>
-      <button
-        aria-label='Close search'
-        className='search-bar-button'
-        onClick={onClose}
-        type='button'
-      >
-        ✕
-      </button>
+      <div className='search-bar-controls'>
+        <span className='search-bar-count'>
+          {query === '' ? '' : count === 0 ? 'no matches' : `${active + 1} of ${count}`}
+        </span>
+        <button
+          aria-label='Previous match'
+          className='search-bar-button'
+          onClick={() => jump(stepMatch(active, -1, matches.length))}
+          disabled={count === 0}
+          type='button'
+        >
+          ↑
+        </button>
+        <button
+          aria-label='Next match'
+          className='search-bar-button'
+          onClick={() => jump(stepMatch(active, 1, matches.length))}
+          disabled={count === 0}
+          type='button'
+        >
+          ↓
+        </button>
+        <button
+          aria-label='Close search'
+          className='search-bar-button'
+          onClick={onClose}
+          type='button'
+        >
+          ✕
+        </button>
+      </div>
     </div>
   )
 }

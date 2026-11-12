@@ -38,6 +38,14 @@
   white-space: nowrap;
 }
 
+.search-bar-controls {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
 .search-bar-button {
   padding: 0.2rem 0.5rem;
   border: 1px solid var(--line);
