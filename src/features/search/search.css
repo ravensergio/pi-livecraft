@@ -1,0 +1,69 @@
+/* Search bar: fixed top-center over the conversation, composer-style surface. */
+.search-bar {
+  position: fixed;
+  top: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised, var(--surface));
+  box-shadow: 0 6px 24px rgb(0 0 0 / 35%);
+}
+
+.search-bar-input {
+  width: 20rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.search-bar-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.search-bar-count {
+  min-width: 5.2rem;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.search-bar-button {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.search-bar-button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.search-bar-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Search highlights paint over text without touching the DOM. */
+::highlight(livecraft-search) {
+  background-color: color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+::highlight(livecraft-search-active) {
+  background-color: var(--accent);
+  color: var(--surface);
+}

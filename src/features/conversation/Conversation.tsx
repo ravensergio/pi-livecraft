@@ -379,6 +379,13 @@ export function Conversation(
       window.cancelAnimationFrame(fallbackRaf ?? 0)
       conversation.removeEventListener('scrollend', finishNavigation)
       navigationInProgressRef.current = false
+      // A jumped-to message should show what was found: open its "Show N more lines"
+      // fold (search and session-analysis navigation both benefit).
+      target
+        .querySelectorAll<HTMLButtonElement>('.message-fold')
+        .forEach((button) => {
+          if (button.textContent?.startsWith('Show ')) button.click()
+        })
       setHighlightedTarget(targetKey)
       highlightTimeout = window.setTimeout(() => {
         if (!cancelled) setHighlightedTarget(undefined)

@@ -45,6 +45,8 @@ import { stripQuoteMarkers } from './features/conversation/quote-envelope.ts'
 import { assistantMessageInEvent } from '../shared/assistant-message-stream.ts'
 import { speakReply } from './features/voice/voice.ts'
 import { useConversationRuntime } from './features/conversation/useConversationRuntime.ts'
+import { isVisibleConversationMessage } from './features/conversation/message-display.ts'
+import { SearchBar } from './features/search/SearchBar.tsx'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import {
   isAgentSelector,
@@ -114,6 +116,7 @@ import {
   type SessionAnalysisTarget,
 } from './features/session-analysis/session-analysis.ts'
 import './features/commands/commands.css'
+import './features/search/search.css'
 
 const emptyAgentOptions: string[] = []
 const conversationViewDetails = {
@@ -257,6 +260,7 @@ function App() {
   const [conversationNavigation, setConversationNavigation] = useState<
     { id: number; target: SessionAnalysisTarget }
   >()
+  const [searchOpen, setSearchOpen] = useState(false)
   const [shortcuts, setShortcuts] = useState(() => readShortcuts())
   const [terminalCommand, setTerminalCommand] = useState(() => readTerminalCommand())
   const [typography, setTypography] = useState<TypographySettings>(() => readTypography())
@@ -508,6 +512,24 @@ function App() {
     snapshotSessionId,
     toolExecutions,
   } = useConversationRuntime(selectedId, handleWorkspaceError, replayPiEvent)
+
+  /** Ctrl+F searchable text: visible message content with the invisible quote markers
+   *  stripped, so a search finds what the chat shows. */
+  const searchEntries = useMemo(
+    () =>
+      snapshot.messages.flatMap((message, index) =>
+        isVisibleConversationMessage(message)
+          ? [{ index, text: stripQuoteMarkers(visibleText(message.content)) }]
+          : []
+      ),
+    [snapshot.messages],
+  )
+  const jumpToSearchMatch = useCallback((index: number): void => {
+    setConversationNavigation((current) => ({
+      id: (current?.id ?? 0) + 1,
+      target: { kind: 'message', index },
+    }))
+  }, [])
   const handleForkConversation = useCallback(async (entryId: string): Promise<boolean> => {
     const response = await sendPiCommand(selectedId, { type: 'fork', entryId })
     const data = isObject(response.data) ? response.data : undefined
@@ -1274,6 +1296,10 @@ function App() {
       setCommandPaletteOpen(true)
       return
     }
+    if (id === 'search') {
+      setSearchOpen(true)
+      return
+    }
     if (id === 'open-settings') {
       setSettingsOpen(true)
       return
@@ -1735,6 +1761,14 @@ function App() {
               <ToastStack onDismiss={dismissToast} standalone toasts={visibleToasts} />
             </>
           )}
+        {searchOpen && selectedSession && (
+          <SearchBar
+            key={selectedSession.id}
+            messages={searchEntries}
+            onClose={() => setSearchOpen(false)}
+            onJump={jumpToSearchMatch}
+          />
+        )}
       </main>
 
       <RightSidebar

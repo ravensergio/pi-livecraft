@@ -25,6 +25,11 @@ Still open:
 
 While a message streams, every delta re-parses the whole message as markdown. Idea: a pure splitter (`segment-stream.ts` + unit tests, fences and tables included) feeding finished segments to memoized `<Markdown>` with one live tail. Accept only if output is pixel-identical to today and a long code-heavy reply streams without dropped frames.
 
+## Cross-session search (search Phase 2) — not started
+
+Phase 1 (in-session Ctrl+F) shipped in `src/features/search/`. Phase 2: a "which chat said X?" search over pi's own session files — a `GET /api/search?q=` in the backend scanning the session directory already read by `server/pi-session-store.ts` (jsonl text, capped scan, no index, no database), results as session + snippet, click opens the session. The UI hangs off the search bar: a "all sessions" toggle.
+
+
 ## Finished — removed from this file, findable in git
 
 - Mobile layout, verified on Raven's phone 2026-10-17 → `src/styles/responsive.css`.
