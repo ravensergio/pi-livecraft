@@ -123,6 +123,10 @@ export function remarkDownloadableFilePaths() {
           )
           return ['skip', index] as const
         }
+        // Code that is more than one path stays code: the prose branch below reads raw
+        // source, so linkifying it would splice the path out of a code span or fence
+        // and leave the backticks visible (hf-download command regression).
+        if (node.type !== 'text') return
 
         // Markdown escapes eat the backslash before punctuation, so "\.pi" already
         // lost it by the time the text node exists; read the run's source span.

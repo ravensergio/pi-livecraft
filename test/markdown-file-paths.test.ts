@@ -101,6 +101,40 @@ test('a code block with more than a path stays literal code', () => {
   assert.equal(tree.children[0]?.type, 'code')
 })
 
+test('a fenced command containing a linkable path stays a fenced command', () => {
+  // Regression: a real reply carried this exact shape; the plugin spliced the path
+  // out of the block's raw source and the ``` fences showed up as literal text.
+  const source = '```\nhf download repo/pack.basalt --local-dir "E:\\models\\jesdga-iq3xxs"\n```'
+  const code = {
+    type: 'code',
+    lang: null,
+    meta: null,
+    value: 'hf download repo/pack.basalt --local-dir "E:\\models\\jesdga-iq3xxs"',
+    position: { start: { offset: 0 }, end: { offset: source.length } },
+  }
+  const tree = { type: 'root', children: [code] }
+
+  remarkDownloadableFilePaths()(tree, { value: source })
+
+  assert.equal(tree.children[0]?.type, 'code')
+})
+
+test('an inline code span carrying a command stays a code span', () => {
+  const source = 'run `copy E:\\work\\a.ps1 D:\\b.ps1` to fix it'
+  const open = source.indexOf('`')
+  const span = {
+    type: 'inlineCode',
+    value: 'copy E:\\work\\a.ps1 D:\\b.ps1',
+    position: { start: { offset: open }, end: { offset: source.indexOf('`', open + 1) + 1 } },
+  }
+  const paragraph = { type: 'paragraph', children: [span] }
+  const tree = { type: 'root', children: [paragraph] }
+
+  remarkDownloadableFilePaths()(tree, { value: source })
+
+  assert.deepEqual(paragraph.children, [span])
+})
+
 test('a quoted path keeps its quote marks and loses none of its spaces', () => {
   assert.deepEqual(filePathLinks(`Path: "${spaced}" ready`), [
     { type: 'text', value: 'Path: "' },
