@@ -18,10 +18,10 @@ function clearHighlights(): void {
   CSS.highlights.delete(HIGHLIGHT_ACTIVE)
 }
 
-/** One message element's Ranges for every occurrence of the query. Text nodes are
- *  concatenated for the search, and each Range spans the real nodes it covers. */
-function messageRanges(element: HTMLElement, query: string, ranges: Range[]): void {
-  const needle = query.toLowerCase()
+/** One message element's Ranges for every occurrence of every query word. Text nodes
+ *  are concatenated for the search, and each Range spans the real nodes it covers;
+ *  ranges come out sorted through the text, like the matcher's per-message matches. */
+function messageRanges(element: HTMLElement, words: string[], ranges: Range[]): void {
   const nodes: Text[] = []
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
   let node = walker.nextNode()
@@ -41,16 +41,24 @@ function messageRanges(element: HTMLElement, query: string, ranges: Range[]): vo
     while (i + 1 < starts.length && starts[i + 1] <= position) i++
     return { node: nodes[i], at: position - starts[i] }
   }
-  let at = text.indexOf(needle)
-  while (at !== -1) {
-    const from = locate(at)
-    const to = locate(at + needle.length)
-    const range = document.createRange()
-    range.setStart(from.node, from.at)
-    range.setEnd(to.node, to.at)
+  const found: Array<Range & { at: number }> = []
+  for (const word of words) {
+    let at = text.indexOf(word)
+    while (at !== -1 && found.length < MAX_RANGES_PER_MESSAGE) {
+      const from = locate(at)
+      const to = locate(at + word.length)
+      const range = document.createRange() as Range & { at: number }
+      range.setStart(from.node, from.at)
+      range.setEnd(to.node, to.at)
+      range.at = at
+      found.push(range)
+      at = text.indexOf(word, at + word.length)
+    }
+  }
+  found.sort((a, b) => a.at - b.at)
+  for (const range of found) {
+    delete (range as { at?: number }).at
     ranges.push(range)
-    if (ranges.length >= MAX_RANGES_PER_MESSAGE) break
-    at = text.indexOf(needle, at + needle.length)
   }
 }
 
@@ -109,6 +117,7 @@ export function SearchBar(
     if (!supportsHighlightApi || !query || matches.length === 0) return
     const conversation = document.querySelector<HTMLElement>('.conversation')
     if (!conversation) return
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean)
     const activeMatch = matches[active]
     // One scan per mounted message, not per match (the old per-match loop pushed every
     // occurrence of every match: quadratic, and the Highlight spread overflowed the stack).
@@ -123,7 +132,7 @@ export function SearchBar(
       )
       if (!element) continue
       const ranges: Range[] = []
-      messageRanges(element, query, ranges)
+      messageRanges(element, words, ranges)
       if (activeMatch && activeMatch.index === match.index) {
         // Occurrences inside the message keep document order; the active match is the
         // one whose start offset ranks at the same position among them.

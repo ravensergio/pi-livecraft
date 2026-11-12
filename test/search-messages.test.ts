@@ -31,6 +31,28 @@ test('the match list is capped so a typo query stays responsive', () => {
   assert.equal(findMatches(huge, 'a').length, 1000)
 })
 
+test('every query word must appear, in any order — swift next finds Swift 1.5 Flash Next', () => {
+  const corpus = [
+    { index: 0, text: 'Swift 1.5 Flash Next decodes fast' },
+    { index: 1, text: 'only next time' },
+  ]
+  assert.deepEqual(findMatches(corpus, 'swift next'), [
+    { index: 0, start: 0, end: 5 },
+    { index: 0, start: 16, end: 20 },
+  ])
+})
+
+test('multiple query words interleave in text order and extra spaces are ignored', () => {
+  assert.deepEqual(
+    findMatches([{ index: 3, text: 'next then swift then next' }], '  next   swift '),
+    [
+      { index: 3, start: 0, end: 4 },
+      { index: 3, start: 10, end: 15 },
+      { index: 3, start: 21, end: 25 },
+    ],
+  )
+})
+
 test('next and previous cycle through the matches', () => {
   assert.equal(stepMatch(0, 1, 3), 1)
   assert.equal(stepMatch(2, 1, 3), 0)
