@@ -4,6 +4,10 @@ import { findMatches, stepMatch, type SearchableMessage } from './search-message
 /** Highlight names registered with CSS.highlights; styled in search.css via ::highlight(). */
 const HIGHLIGHT_ALL = 'livecraft-search'
 const HIGHLIGHT_ACTIVE = 'livecraft-search-active'
+/** Range caps: Highlight spread arguments eat the stack, and thousands of painted
+ *  hits are noise the eye cannot use. */
+const MAX_RANGES = 2000
+const MAX_RANGES_PER_MESSAGE = 500
 
 const supportsHighlightApi = typeof CSS !== 'undefined' && 'highlights' in CSS
 
@@ -45,6 +49,7 @@ function messageRanges(element: HTMLElement, query: string, ranges: Range[]): vo
     range.setStart(from.node, from.at)
     range.setEnd(to.node, to.at)
     ranges.push(range)
+    if (ranges.length >= MAX_RANGES_PER_MESSAGE) break
     at = text.indexOf(needle, at + needle.length)
   }
 }
@@ -104,10 +109,15 @@ export function SearchBar(
     if (!supportsHighlightApi || !query || matches.length === 0) return
     const conversation = document.querySelector<HTMLElement>('.conversation')
     if (!conversation) return
+    const activeMatch = matches[active]
+    // One scan per mounted message, not per match (the old per-match loop pushed every
+    // occurrence of every match: quadratic, and the Highlight spread overflowed the stack).
+    const seen = new Set<number>()
     const all: Range[] = []
     const activeRanges: Range[] = []
-    const activeMatch = matches[active]
     for (const match of matches) {
+      if (seen.has(match.index)) continue
+      seen.add(match.index)
       const element = conversation.querySelector<HTMLElement>(
         `[data-message-index="${match.index}"]`,
       )
@@ -119,13 +129,16 @@ export function SearchBar(
         // one whose start offset ranks at the same position among them.
         const rank = matches
           .filter(
-            (m) => m.index === match.index && m.start < (activeMatch?.start ?? -1),
+            (m) => m.index === match.index && m.start < activeMatch.start,
           )
           .length
         const activeRange = ranges[rank]
         if (activeRange) activeRanges.push(activeRange)
       }
-      all.push(...ranges)
+      for (const range of ranges) {
+        if (all.length >= MAX_RANGES) break
+        all.push(range)
+      }
     }
     CSS.highlights.set(HIGHLIGHT_ALL, new Highlight(...all))
     if (activeRanges.length > 0)
