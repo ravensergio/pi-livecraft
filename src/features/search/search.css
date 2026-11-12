@@ -3,6 +3,8 @@
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  /* Same width cap as .composer, so the bar aligns exactly above it. */
+  max-width: 762px;
   margin-bottom: 0.4rem;
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--line);
