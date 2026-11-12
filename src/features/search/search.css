@@ -1,11 +1,13 @@
-/* Search bar: a row above the composer, inside the composer's centered column. */
+/* Search bar: fixed top-center over the conversation, composer-style surface. */
 .search-bar {
+  position: fixed;
+  top: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  /* Same width cap as .composer, so the bar aligns exactly above it. */
-  max-width: 762px;
-  margin-bottom: 0.4rem;
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -14,8 +16,7 @@
 }
 
 .search-bar-input {
-  flex: 1;
-  min-width: 6rem;
+  width: 20rem;
   padding: 0.3rem 0.55rem;
   border: 1px solid var(--line);
   border-radius: 7px;
