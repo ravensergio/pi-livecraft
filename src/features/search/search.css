@@ -32,7 +32,8 @@
 }
 
 .search-bar-count {
-  min-width: 5.2rem;
+  /* No reserved width: while empty it would be an invisible gap pushing the
+     buttons away from the input. */
   color: var(--muted);
   font-size: 12px;
   text-align: center;
