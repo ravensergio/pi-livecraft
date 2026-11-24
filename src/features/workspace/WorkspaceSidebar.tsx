@@ -340,6 +340,18 @@ export function WorkspaceSidebar({
     }
   }
 
+  async function copySessionPath(): Promise<void> {
+    const sessionPath = contextMenu?.target.sessionPath
+    dismissContextMenu()
+    if (!sessionPath) return
+    try {
+      await copyText(sessionPath)
+      onNotice(`Copied "${sessionPath}"`)
+    } catch (cause) {
+      onError(cause)
+    }
+  }
+
   async function closeTarget(): Promise<void> {
     const sessionId = contextMenu?.target.sessionId
     dismissContextMenu()
@@ -674,6 +686,11 @@ export function WorkspaceSidebar({
           <button onClick={() => void copySessionName()} role='menuitem' type='button'>
             Copy session name
           </button>
+          {contextMenu.target.sessionPath && (
+            <button onClick={() => void copySessionPath()} role='menuitem' type='button'>
+              Copy session path
+            </button>
+          )}
           {/* Temporary live sessions can be upgraded so their file survives close. */}
           {contextMenu.target.sessionId && contextMenu.target.temporary && (
             <button
