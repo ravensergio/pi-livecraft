@@ -92,3 +92,37 @@ test('temporary sessions are never mirrored nor trashed', async () => {
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('mass disappearance refuses to trash; a single deletion still trashes', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'livecraft-backup-'))
+  try {
+    const source = join(root, 'sessions')
+    const destination = join(root, 'backup')
+    await mkdir(source, { recursive: true })
+    for (let i = 0; i < 8; i += 1) {
+      await writeFile(join(source, `s${i}.jsonl`), `${header}\n${userMessage}\n`)
+    }
+    const backup = new SessionBackup(join(root, 'settings.json'), source)
+    let status = await backup.setDestination(destination)
+    assert.equal(status.files, 8)
+
+    // 6 of 8 vanish: more than half and more than 5 — the guard refuses to trash.
+    for (let i = 0; i < 6; i += 1) await rm(join(source, `s${i}.jsonl`))
+    status = await backup.syncNow()
+    assert.match(status.error ?? '', /Mass deletion/)
+    assert.equal(status.trashFiles, 0)
+    assert.equal(status.files, 8)
+
+    // Sources return, then one deliberate deletion trashes normally.
+    for (let i = 0; i < 6; i += 1) {
+      await writeFile(join(source, `s${i}.jsonl`), `${header}\n${userMessage}\n`)
+    }
+    await rm(join(source, 's7.jsonl'))
+    status = await backup.syncNow()
+    assert.equal(status.error, null)
+    assert.equal(status.trashFiles, 1)
+    assert.equal(status.files, 7)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

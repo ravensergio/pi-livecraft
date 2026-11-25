@@ -114,13 +114,24 @@ export class SessionBackup {
         await utimes(target, src.atime, src.mtime)
       }
 
-      for (const name of await this.list(sessionsDir)) {
-        if (sourceSet.has(name)) continue
+      const mirror = await this.list(sessionsDir)
+      const gone = mirror.filter(
+        (name) => !sourceSet.has(name) && !excluded.has(pathKey(join(this.sourceDir, name))),
+      )
+      // The UI deletes one session at a time, so mass disappearance is always an
+      // accident: refuse to trash half the backup and let the status line shout.
+      if (gone.length > 5 && gone.length * 2 > mirror.length) {
+        this.lastError =
+          `Mass deletion detected: ${gone.length} sessions vanished from the source — `
+          + 'nothing was trashed. Restore them, or clear the mirror folder if this was intended.'
+        return this.status()
+      }
+      for (const name of mirror) {
+        if (sourceSet.has(name) || !excluded.has(pathKey(join(this.sourceDir, name)))) continue
+        await rm(join(sessionsDir, name), { force: true })
+      }
+      for (const name of gone) {
         const retired = join(sessionsDir, name)
-        if (excluded.has(pathKey(join(this.sourceDir, name)))) {
-          await rm(retired, { force: true })
-          continue
-        }
         const label = await this.sessionLabel(retired, basename(name))
         await rename(retired, join(trashDir, await this.uniqueName(trashDir, label)))
       }
