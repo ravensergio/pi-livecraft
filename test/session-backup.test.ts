@@ -66,3 +66,29 @@ test('sanitize produces filesystem-safe labels', () => {
   assert.equal(sanitize('  ..  '), 'session')
   assert.equal(sanitize('keep spaces and dots.in.the.middle'), 'keep spaces and dots.in.the.middle')
 })
+
+test('temporary sessions are never mirrored nor trashed', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'livecraft-backup-'))
+  try {
+    const source = join(root, 'sessions')
+    const destination = join(root, 'backup')
+    await mkdir(source, { recursive: true })
+    const tempFile = join(source, 'temp.jsonl')
+    await writeFile(tempFile, `${header}\n${userMessage}\n`)
+    await writeFile(join(source, 'keep.jsonl'), `${header}\n${userMessage}\n`)
+
+    let temporary = [tempFile]
+    const backup = new SessionBackup(join(root, 'settings.json'), source, async () => temporary)
+    let status = await backup.setDestination(destination)
+    assert.equal(status.files, 1) // only the non-temporary session is mirrored
+
+    // Temporary session closes: pi deletes the file, backup must not trash anything.
+    await rm(tempFile)
+    temporary = []
+    status = await backup.syncNow()
+    assert.equal(status.trashFiles, 0)
+    assert.equal(status.files, 1)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

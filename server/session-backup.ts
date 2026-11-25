@@ -4,11 +4,12 @@ import {
   readFile,
   readdir,
   rename,
+  rm,
   stat,
   utimes,
   writeFile,
 } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { isObject } from '../shared/is-object.ts'
 import type { JsonObject } from '../shared/types.ts'
 
@@ -34,10 +35,16 @@ export class SessionBackup {
 
   private readonly settingsFile: string
   private readonly sourceDir: string
+  private readonly temporaryPaths: () => Promise<string[]>
 
-  constructor(settingsFile: string, sourceDir: string) {
+  constructor(
+    settingsFile: string,
+    sourceDir: string,
+    temporaryPaths: () => Promise<string[]> = async () => [],
+  ) {
     this.settingsFile = settingsFile
     this.sourceDir = sourceDir
+    this.temporaryPaths = temporaryPaths
     this.start()
   }
 
@@ -85,11 +92,14 @@ export class SessionBackup {
       const trashDir = join(destination, 'sessions-trash')
       await mkdir(sessionsDir, { recursive: true })
       await mkdir(trashDir, { recursive: true })
+      // Temporary sessions are disposable: never mirrored, never trashed.
+      const excluded = new Set((await this.temporaryPaths()).map(pathKey))
 
       const sourceFiles = await this.list(this.sourceDir)
       const sourceSet = new Set(sourceFiles)
       for (const name of sourceFiles) {
         const source = join(this.sourceDir, name)
+        if (excluded.has(pathKey(source))) continue
         const target = join(sessionsDir, name)
         const [src, dst] = await Promise.all([
           stat(source),
@@ -107,6 +117,10 @@ export class SessionBackup {
       for (const name of await this.list(sessionsDir)) {
         if (sourceSet.has(name)) continue
         const retired = join(sessionsDir, name)
+        if (excluded.has(pathKey(join(this.sourceDir, name)))) {
+          await rm(retired, { force: true })
+          continue
+        }
         const label = await this.sessionLabel(retired, basename(name))
         await rename(retired, join(trashDir, await this.uniqueName(trashDir, label)))
       }
@@ -195,6 +209,12 @@ export class SessionBackup {
       return {}
     }
   }
+}
+
+/** Compares paths forgiving separators and (on Windows) case. */
+function pathKey(path: string): string {
+  const resolved = resolve(path)
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
 }
 
 /** Filesystem-safe label for trashed session files (Windows rules: no <>:"/\|?*). */

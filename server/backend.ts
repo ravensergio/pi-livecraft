@@ -92,7 +92,19 @@ const liveSessionEvents = new Map<string, LiveSessionEvents>()
 let piEventSequence = 0
 const distDirectory = fileURLToPath(new URL('../dist/', import.meta.url))
 const quotas = new QuotaService(manager)
-const sessionBackup = new SessionBackup(searchConfigFile(), piSessionDirectory)
+const sessionBackup = new SessionBackup(searchConfigFile(), piSessionDirectory, async () => {
+  // Temporary sessions are the manager's knowledge; ask it before each sync.
+  try {
+    const live = await manager.request({ action: 'list' })
+    if (!Array.isArray(live)) return []
+    return live
+      .filter((session): session is JsonObject => isObject(session) && session.temporary === true)
+      .map((session) => (typeof session.sessionPath === 'string' ? session.sessionPath : ''))
+      .filter(Boolean)
+  } catch {
+    return []
+  }
+})
 const managerRuntime = new ManagerRuntimeMonitor(manager, (status) => {
   broadcast({ kind: 'event', event: 'manager_status', sessionId: '', data: status })
 })
