@@ -8,7 +8,7 @@ import {
   utimes,
   writeFile,
 } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { isObject } from '../shared/is-object.ts'
 import type { JsonObject } from '../shared/types.ts'
 
@@ -97,6 +97,7 @@ export class SessionBackup {
         ])
         // Copy when new, resized, or newer than the copy (mtime re-stamped below).
         if (dst && dst.size === src.size && src.mtimeMs <= dst.mtimeMs + 1000) continue
+        await mkdir(dirname(target), { recursive: true })
         const temporary = `${target}.tmp.${process.pid}`
         await copyFile(source, temporary)
         await rename(temporary, target)
@@ -106,7 +107,7 @@ export class SessionBackup {
       for (const name of await this.list(sessionsDir)) {
         if (sourceSet.has(name)) continue
         const retired = join(sessionsDir, name)
-        const label = await this.sessionLabel(retired, name)
+        const label = await this.sessionLabel(retired, basename(name))
         await rename(retired, join(trashDir, await this.uniqueName(trashDir, label)))
       }
 
@@ -121,7 +122,9 @@ export class SessionBackup {
 
   private async list(dir: string): Promise<string[]> {
     try {
-      return (await readdir(dir)).filter((name) => name.endsWith('.jsonl'))
+      // Pi keeps sessions in per-project subfolders: mirror the whole tree.
+      const entries = await readdir(dir, { recursive: true })
+      return entries.filter((name) => name.endsWith('.jsonl'))
     } catch {
       return []
     }
