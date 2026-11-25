@@ -7,7 +7,13 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { ManagerClient } from './manager-client.ts'
 import { broadcastFrame } from './sse-broadcast.ts'
 import { ManagerRuntimeMonitor } from './manager-runtime-monitor.ts'
-import { listRecentPiSessions, listSessionWorkspaces, loadPiSession } from './pi-session-store.ts'
+import {
+  listRecentPiSessions,
+  listSessionWorkspaces,
+  loadPiSession,
+  piSessionDirectory,
+} from './pi-session-store.ts'
+import { SessionBackup } from './session-backup.ts'
 import {
   commitChanges,
   discardChanges,
@@ -86,6 +92,7 @@ const liveSessionEvents = new Map<string, LiveSessionEvents>()
 let piEventSequence = 0
 const distDirectory = fileURLToPath(new URL('../dist/', import.meta.url))
 const quotas = new QuotaService(manager)
+const sessionBackup = new SessionBackup(searchConfigFile(), piSessionDirectory)
 const managerRuntime = new ManagerRuntimeMonitor(manager, (status) => {
   broadcast({ kind: 'event', event: 'manager_status', sessionId: '', data: status })
 })
@@ -250,6 +257,25 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       sendJson(response, 200, await saveSearchConfig(await readJsonBody(request)))
       return
     }
+  }
+
+  if (url.pathname === '/api/session-backup') {
+    if (method === 'GET') {
+      sendJson(response, 200, await sessionBackup.status())
+      return
+    }
+    if (method === 'POST') {
+      const body = await readJsonBody(request)
+      if (typeof body.destination !== 'string') {
+        throw new HttpError(400, 'destination must be a string')
+      }
+      sendJson(response, 200, await sessionBackup.setDestination(body.destination.trim()))
+      return
+    }
+  }
+  if (method === 'POST' && url.pathname === '/api/session-backup/run') {
+    sendJson(response, 200, await sessionBackup.syncNow())
+    return
   }
 
   // Studio cost snapshot, proxied so every device reaches the widget through

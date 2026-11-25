@@ -5,6 +5,7 @@ import type { CommandDefinition, CommandId } from '../commands/command-registry.
 import { shortcutFromEvent, shortcutConflicts } from '../commands/command-registry.ts'
 import { VoiceSettingsSection } from '../voice/VoiceSettingsSection.tsx'
 import { WebSearchSettingsSection } from './WebSearchSettingsSection.tsx'
+import { BackupSettingsSection } from './BackupSettingsSection.tsx'
 import {
   applyThemePalette,
   contrastColor,
@@ -35,6 +36,7 @@ export type SettingsTabId =
   | 'shortcuts'
   | 'voice'
   | 'websearch'
+  | 'backup'
 
 /** Describes one tab in the settings modal. */
 export interface SettingsTabDefinition {
@@ -50,6 +52,7 @@ export const settingsTabs: SettingsTabDefinition[] = [
   { id: 'shortcuts', label: 'Shortcuts' },
   { id: 'voice', label: 'Voice' },
   { id: 'websearch', label: 'Web search' },
+  { id: 'backup', label: 'Backup' },
 ]
 
 // ── Shared props ───────────────────────────────────────────────────
@@ -603,6 +606,11 @@ export function SettingsPanel({
               labelledBy='settings-tab-btn-websearch'
             >
               <WebSearchSettingsSection />
+            </TabPanel>
+          )}
+          {activeTab === 'backup' && (
+            <TabPanel key='backup' id='settings-tab-backup' labelledBy='settings-tab-btn-backup'>
+              <BackupSettingsSection />
             </TabPanel>
           )}
         </section>
